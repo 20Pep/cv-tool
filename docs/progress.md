@@ -49,16 +49,53 @@ Las salidas quedan en `outputs/prototype/<nombre>/` y están en `.gitignore`.
 Variables opcionales: `CVTOOL_PROVIDER`, `CVTOOL_MODEL`, `CVTOOL_VARIANT`,
 `CVTOOL_OPENCODE_URL`, `OPENCODE_SERVER_PASSWORD`.
 
-**Próximo paso:** Paso 1 — base del proyecto (Fastify, React/Vite,
-`security.ts`, SQLite con migración `001`, `bin/cv-tool.js`).
+**Próximo paso:** Paso 2 — capa de proveedores + Ajustes.
 
 ## Paso 1 — Base del proyecto
 
-- [ ] Estructura del servidor y del frontend.
-- [ ] `security.ts` (Host/Origin, token, cookie, cabeceras).
-- [ ] SQLite + migración `001`.
-- [ ] `bin/cv-tool.js`.
-- [ ] Verificar `better-sqlite3` en Node 24.
+**Estado:** completado (2026-11-11).
+
+- [x] Servidor Fastify en `127.0.0.1` con `@fastify/cookie` y
+      `@fastify/static`.
+- [x] Frontend React 19 + Vite 8 + Tailwind 4, servido por Vite en desarrollo
+      y por Fastify en producción.
+- [x] `security.ts`: Host/Origin, token de lanzamiento de un solo uso, cookie
+      `HttpOnly; SameSite=Strict`, CSP y cabeceras.
+- [x] SQLite con `better-sqlite3`, WAL, `foreign_keys`, `busy_timeout` y
+      runner de migraciones.
+- [x] Migración `001_init.sql` con las tablas del modelo de datos.
+- [x] `bin/cv-tool.js` y `scripts/dev.ts`.
+- [x] `npm run dev` y `npm start` verificados.
+- [x] `better-sqlite3` verificado en Node 24 (SQLite 3.53.4, sin compilador).
+- [x] `@react-pdf/renderer` + `unpdf` verificados con un PDF generado y texto
+      extraído.
+- [x] Tests de seguridad, base de datos y PDF: 28 tests pasan.
+
+**Cómo probar:**
+
+```powershell
+npm run dev      # Fastify + Vite, abre el navegador
+npm run build    # frontend + servidor compilado
+npm start        # ejecuta dist/server + dist/web
+```
+
+En desarrollo los datos van a `./data`. En producción van a la carpeta de
+datos del sistema (`env-paths`). Se puede forzar otra ubicación con
+`CVTOOL_DATA_DIR`.
+
+Variables útiles: `CVTOOL_PORT` (default 3000), `CVTOOL_VITE_PORT` (default
+5173), `CVTOOL_NO_OPEN=1` para no abrir el navegador.
+
+**Observaciones:**
+
+- El token de lanzamiento es de un solo uso. Si se abre dos veces la misma URL,
+  la segunda falla; hay que reiniciar cv-tool.
+- La cookie no usa `Secure` porque la app habla HTTP en loopback.
+- En producción la app usa un puerto fijo; si está ocupado, muestra un error
+  claro y sugiere `CVTOOL_PORT`.
+- `npm start` requiere `npm run build` antes.
+- shadcn/ui todavía no está instalado; la UI inicial usa Tailwind directo.
+  Se incorpora cuando haya componentes que lo justifiquen.
 
 ## Pasos siguientes
 

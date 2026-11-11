@@ -110,3 +110,12 @@ export const CoverLetter = z
   .strict();
 
 export type CoverLetter = z.infer<typeof CoverLetter>;
+
+export const HealthResponse = z.object({
+  status: z.literal('ok'),
+  version: z.string(),
+  database: z.literal('ok'),
+  uptimeSeconds: z.number().int().nonnegative(),
+});
+
+export type HealthResponse = z.infer<typeof HealthResponse>;

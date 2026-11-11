@@ -164,6 +164,87 @@ Esto es evidencia, no una garantía. En el Paso 5 hay que probar más variantes
 (inyección en el borrador, en un bullet, en un encabezado, en otro idioma) y
 recordar que la segunda barrera es la validación.
 
+## 2026-11-11 — Paso 1: base del proyecto
+
+### D-009 — Fastify + Vite
+
+**Decisión:**
+
+- Desarrollo: Vite sirve el frontend en `127.0.0.1:5173` y hace proxy de
+  `/api` a Fastify en `127.0.0.1:3000`. `npm run dev` levanta ambos y abre el
+  navegador pasando por el canje de token de Fastify.
+- Producción: `npm run build` genera `dist/web` y `dist/server`; Fastify sirve
+  el frontend compilado y la API desde el mismo origen.
+- `npm start` ejecuta `bin/cv-tool.js`, que fuerza `NODE_ENV=production` e
+  importa el servidor compilado.
+- `CVTOOL_PORT` y `CVTOOL_VITE_PORT` permiten cambiar los puertos.
+  `CVTOOL_NO_OPEN=1` evita abrir el navegador en tests/CI.
+- React 19 + Vite 8 + Tailwind 4. La UI inicial es una pantalla de estado del
+  sistema. shadcn/ui se incorpora cuando haya componentes que lo necesiten.
+
+**Verificado:** `npm run dev` sirvió Vite, el proxy devolvió `/api/health` 200
+con cookie y 401 sin cookie; `npm start` sirvió `dist/web`, canjeó el token y
+devolvió `/api/health` 200.
+
+### D-010 — Sesión, token y cabeceras
+
+**Decisión:**
+
+- Al iniciar se generan dos tokens: uno de lanzamiento (un solo uso) y uno de
+  sesión. `bin` abre `http://127.0.0.1:<puerto>/?t=<launchToken>`.
+- El servidor canjea el token de lanzamiento por la cookie
+  `cvtool_session=<sessionToken>` con `HttpOnly`, `SameSite=Strict`, `Path=/`
+  y 12 horas de vida.
+- Todas las rutas `/api/*` exigen la cookie. Las rutas estáticas y el canje no.
+- Host permitido: `127.0.0.1:<puerto>` o `localhost:<puerto>`. Origen permitido:
+  el mismo origen; en desarrollo también `http://127.0.0.1:5173` y
+  `http://localhost:5173`. Se rechaza `Sec-Fetch-Site: cross-site`.
+- Cabeceras: CSP restrictiva, `X-Content-Type-Options`, `Referrer-Policy`,
+  `X-Frame-Options`, `Cross-Origin-Resource-Policy`, `Permissions-Policy` y
+  `Cache-Control: no-store` para `/api`.
+- Se desactiva el log automático de requests para no registrar la URL con el
+  token. Los errores 500 se loguean sin URL ni contenido.
+
+**Riesgos conocidos:**
+
+- La cookie no usa `Secure` porque la app habla HTTP en loopback.
+- El token de lanzamiento es de un solo uso: si se abre dos veces la misma URL,
+  la segunda falla. Reiniciar cv-tool genera uno nuevo.
+- Los tokens viven en memoria; reiniciar el servidor invalida la sesión.
+- `CVTOOL_LAUNCH_TOKEN` y `CVTOOL_SESSION_TOKEN` existen para tests; no usarlos
+  en uso normal.
+
+### D-011 — SQLite y migraciones
+
+**Decisión:**
+
+- `better-sqlite3` 13.0.3 con SQLite 3.53.4, `journal_mode=WAL`,
+  `foreign_keys=ON`, `busy_timeout=5000` y `synchronous=NORMAL`.
+- Runner propio en `src/server/db.ts`: crea `schema_migrations`, ordena los
+  `.sql` y aplica cada migración dentro de una transacción.
+- `001_init.sql` crea `documents`, `profile`, `applications`, `status_history`
+  y `settings`, con `CHECK` de estados e índices.
+- Datos: `./data` en desarrollo y la carpeta de datos del sistema (`env-paths`)
+  en producción. `CVTOOL_DATA_DIR` permite forzar otra ubicación.
+- La base y las carpetas `uploads/` y `outputs/` se crean al iniciar.
+
+**Verificado:** la migración corre, es idempotente, `foreign_keys` queda en 1,
+WAL queda activo en archivo y `status_history` rechaza estados inválidos.
+
+### D-012 — Verificación de `@react-pdf/renderer` y `unpdf`
+
+Se generó un PDF con `@react-pdf/renderer` 4.9.0 y React 19.3.1, y se extrajo
+el texto con `unpdf` 2.1.0. El test encontró `Hola ATS` en el PDF.
+
+**Pendiente:** probar `unpdf` con CVs reales variados (PDFs de distintas
+herramientas, escaneados sin texto, etc.) en el Paso 3.
+
+### D-013 — Configuración de Vitest
+
+Vite usa `root: src/web`, y Vitest heredaba esa raíz: no encontraba tests.
+Se agregó `vitest.config.ts` con `root: '.'` y `include: tests/**/*.test.ts(x)`.
+`npm test` vuelve a correr desde la raíz del proyecto.
+
 ## [VERIFICAR] de PROJECT.md §10.2
 
 | Punto | Resultado |
@@ -176,10 +257,10 @@ recordar que la segunda barrera es la validación.
 | `OPENCODE_SERVER_PASSWORD` en `serve` dedicado | No verificado todavía. |
 | Aislamiento de plugins/MCP/config global | No verificado. Si se lanza una instancia dedicada, usar config aislada. |
 
-## [VERIFICAR] de PROJECT.md §4 (pendientes)
+## [VERIFICAR] de PROJECT.md §4
 
 | Punto | Estado |
 |---|---|
-| `better-sqlite3` con prebuilds en Node 24 | Pendiente (Paso 1). |
-| `@react-pdf/renderer` en Node 24/ESM | Pendiente (Paso 6). |
-| `unpdf` con CVs reales variados | Pendiente (Paso 3). |
+| `better-sqlite3` con prebuilds en Node 24 | Verificado (2026-11-11): 13.0.3, SQLite 3.53.4, sin compilador manual. |
+| `@react-pdf/renderer` en Node 24/ESM | Verificado (2026-11-11): 4.9.0 con React 19.3.1 generó un PDF válido. |
+| `unpdf` con CVs reales variados | Verificado parcialmente: PDF generado con texto extraíble. CVs reales quedan para el Paso 3. |

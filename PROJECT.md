@@ -58,9 +58,8 @@ Herramienta **open source, gratuita y local-first** que cualquiera pueda correr 
 
 Notas:
 - La base de datos queda encapsulada en `db.ts`. Más adelante se podrá migrar a `node:sqlite` (integrado en Node; hoy en estado release candidate) sin tocar el resto del código.
-- **[VERIFICAR]** `better-sqlite3` se instala con binarios precompilados en Windows, macOS y Linux sobre Node 24, **sin requerir compilador**. Si no, documentar la alternativa.
-- **[VERIFICAR]** `@react-pdf/renderer` genera PDFs correctamente bajo Node 24 en ESM, incluyendo la carga de fuentes.
-- **[VERIFICAR]** `unpdf` extrae texto de CVs reales (con formatos variados).
+- **[VERIFICADO 2026-11-11]** `better-sqlite3` 13.0.3 se instaló y abrió SQLite 3.53.4 en Node 24 sin compilador manual. Ver `docs/decisions.md`.
+- **[VERIFICADO 2026-11-11]** `@react-pdf/renderer` 4.9.0 generó un PDF válido con React 19 en Node 24/ESM; `unpdf` 2.1.0 extrajo el texto. Falta probar `unpdf` con CVs reales variados (Paso 3).
 
 ## 5. Alcance por etapas
 
@@ -461,6 +460,7 @@ Cada paso termina con algo ejecutable y verificable. No avances al siguiente sin
    *Resultado (2026-11-10):* se usó `opencode-go/deepseek-v4.1-flash` con `variant: low`; CV y carta válidos en español e inglés; la oferta con prompt injection fue resistida. Pendiente medir concurrencia y aislar una instancia dedicada. Ver `docs/decisions.md`.
 1. **Base del proyecto.** Estructura, Fastify, React servido con Vite, `security.ts` (Host/Origin/token/cookie/cabeceras), SQLite con migración `001`, `bin/cv-tool.js`.
    *Listo cuando:* `npm run dev` y `npm start` funcionan, la app abre en `127.0.0.1`, rechaza requests con `Origin` ajeno o sin cookie y crea la base al iniciar. Verificar `better-sqlite3`, `unpdf` y `@react-pdf/renderer` en Node 24.
+   *Resultado (2026-11-11):* completado. `npm run dev` y `npm start` verificados; seguridad, SQLite, `better-sqlite3`, `@react-pdf/renderer` y `unpdf` verificados; 28 tests pasan. Ver `docs/decisions.md`.
 2. **Capa de proveedores + adaptador OpenCode.** Interfaz, adaptador, detección y pantalla de Ajustes con "Probar conexión".
    *Listo cuando:* desde la UI se elige modelo y la prueba devuelve una respuesta real.
 3. **Ingesta y perfil maestro.** Subida de archivos, extracción, `buildProfile.ts`, editor del perfil.
