@@ -1,0 +1,114 @@
+{
+  "basics": {
+    "fullName": "Ana Pérez",
+    "headline": "Analista de datos",
+    "email": "ana.perez@example.com",
+    "phone": "+54 11 5555-0101",
+    "location": "Buenos Aires, Argentina",
+    "links": [
+      {
+        "label": "LinkedIn",
+        "url": "https://example.com/ana-perez"
+      }
+    ]
+  },
+  "summary": "Analista de datos con 4 años de experiencia en reporting, visualización y automatización. Trabajé con SQL, Power BI y Excel en equipos de retail y logística.",
+  "experience": [
+    {
+      "id": "exp-nova",
+      "company": "Nova Retail (ficticia)",
+      "role": "Analista de datos",
+      "start": "2021",
+      "end": null,
+      "location": "Buenos Aires",
+      "bullets": [
+        {
+          "id": "nova-b1",
+          "text": "Analicé datos de ventas con SQL y Power BI y reduje el tiempo de reporte en 30%."
+        },
+        {
+          "id": "nova-b2",
+          "text": "Automaticé reportes mensuales con Excel y SQL para 5 áreas de negocio."
+        },
+        {
+          "id": "nova-b3",
+          "text": "Construí tableros en Power BI para seguir ventas por categoría y detectar desvíos."
+        }
+      ]
+    },
+    {
+      "id": "exp-logitrans",
+      "company": "LogiTrans (ficticia)",
+      "role": "Asistente de datos",
+      "start": "2019",
+      "end": "2021",
+      "location": "Rosario",
+      "bullets": [
+        {
+          "id": "logi-b1",
+          "text": "Documenté procesos de limpieza de datos y capacité a 8 personas del equipo."
+        },
+        {
+          "id": "logi-b2",
+          "text": "Preparé reportes semanales de entregas con Excel y SQL para el área de operaciones."
+        }
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Universidad Ficticia",
+      "degree": "Licenciatura en Estadística",
+      "start": "2014",
+      "end": "2019"
+    }
+  ],
+  "skills": [
+    {
+      "name": "SQL",
+      "category": "Datos"
+    },
+    {
+      "name": "Power BI",
+      "category": "Visualización"
+    },
+    {
+      "name": "Excel",
+      "category": "Análisis"
+    },
+    {
+      "name": "Estadística",
+      "category": "Datos"
+    },
+    {
+      "name": "Limpieza de datos",
+      "category": "Datos"
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-panel",
+      "name": "Panel de ventas",
+      "description": "Tablero para seguir ventas por categoría y comparar contra el objetivo mensual.",
+      "url": "https://example.com/panel-ventas",
+      "tech": ["SQL", "Power BI"]
+    }
+  ],
+  "certifications": [
+    {
+      "name": "Power BI Data Analyst",
+      "issuer": "Instituto Ficticio",
+      "year": "2023"
+    }
+  ],
+  "languages": [
+    {
+      "name": "Español",
+      "level": "Nativo"
+    },
+    {
+      "name": "Inglés",
+      "level": "B2"
+    }
+  ]
+}
