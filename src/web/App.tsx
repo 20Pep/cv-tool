@@ -19,7 +19,9 @@ export function App() {
       });
 
       if (response.status === 401) {
-        throw new Error('No hay una sesión válida. Abrí la URL que mostró cv-tool al iniciar.');
+        throw new Error(
+          'No hay una sesión válida. Volvé a ejecutar cv-tool y usá la URL que abre automáticamente.',
+        );
       }
 
       if (!response.ok) {

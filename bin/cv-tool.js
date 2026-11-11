@@ -8,9 +8,13 @@ try {
   const server = await startServer();
 
   console.log(`cv-tool iniciado en ${server.url}`);
-  console.log('Abriendo el navegador...');
 
-  openBrowser(server.launchUrl);
+  if (process.env.CVTOOL_NO_OPEN === '1') {
+    console.log('Navegador automático desactivado (CVTOOL_NO_OPEN=1).');
+  } else {
+    console.log('Abriendo el navegador...');
+    openBrowser(server.launchUrl);
+  }
 
   let closing = false;
   const shutdown = async () => {
@@ -37,7 +41,7 @@ try {
   console.error('No pude iniciar cv-tool.');
   console.error(error instanceof Error ? error.message : String(error));
   console.error(
-    'Si estás desarrollando, usá "npm run dev". Si es una instalación, ejecutá "npm run build" primero.',
+    'Si estás usando el código fuente, ejecutá "npm run build" primero o usá "npm run dev".',
   );
   process.exitCode = 1;
 }
