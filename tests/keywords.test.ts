@@ -24,6 +24,22 @@ describe('normalizeForMatch', () => {
   });
 });
 
+describe('matchKeywords con equivalencias', () => {
+  it('cubre "GitHub" si el CV declara "Git"', () => {
+    const match = matchKeywords(['GitHub'], 'Experiencia con Git y Docker');
+
+    expect(match.matched).toContain('GitHub');
+    expect(match.missing).toEqual([]);
+  });
+
+  it('no inventa cobertura para productos distintos', () => {
+    const match = matchKeywords(['MySQL'], 'Experiencia con PostgreSQL');
+
+    expect(match.matched).toEqual([]);
+    expect(match.missing).toEqual(['MySQL']);
+  });
+});
+
 describe('extractKeywords', () => {
   it('extrae las keywords principales de las cinco ofertas', () => {
     expect(extractKeywords(offers.analistaEs)).toEqual(

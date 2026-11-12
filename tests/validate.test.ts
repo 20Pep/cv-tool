@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { type CoverLetter, MasterProfile, type TailoredCV } from '../src/shared/schemas.js';
+import { skillsMatch } from '../src/shared/skills.js';
 import {
   extractNumberTokens,
   normalizeText,
@@ -43,6 +44,30 @@ describe('extractNumberTokens', () => {
   });
 });
 
+describe('skillsMatch', () => {
+  it('Git equivale a GitHub y al revés', () => {
+    expect(skillsMatch('Git', 'GitHub')).toBe(true);
+    expect(skillsMatch('GitHub', 'Git')).toBe(true);
+  });
+
+  it('K8s equivale a Kubernetes', () => {
+    expect(skillsMatch('K8s', 'Kubernetes')).toBe(true);
+  });
+
+  it('no equivale productos distintos', () => {
+    expect(skillsMatch('PostgreSQL', 'MySQL')).toBe(false);
+    expect(skillsMatch('GitLab', 'GitHub')).toBe(false);
+  });
+
+  it('no equivale un framework con su versión móvil', () => {
+    expect(skillsMatch('React', 'React Native')).toBe(false);
+  });
+
+  it('ignora mayúsculas y acentos', () => {
+    expect(skillsMatch('NODE.JS', 'Node')).toBe(true);
+  });
+});
+
 describe('validateTailoredCV', () => {
   it('acepta un CV que solo usa datos del perfil', () => {
     expect(validateTailoredCV(validCv, profile)).toEqual([]);
@@ -78,6 +103,24 @@ describe('validateTailoredCV', () => {
   it('acepta skills con otra capitalización', () => {
     const cv = { ...validCv, skills: ['sql', 'power bi'] };
     expect(validateTailoredCV(cv, profile)).toEqual([]);
+  });
+
+  it('acepta equivalencias de nombre con el perfil', () => {
+    // El perfil declara Git: nombrar "GitHub" es una equivalencia de nombre,
+    // no un dato nuevo (saber Git implica poder usar GitHub).
+    const profileWithGit = {
+      ...profile,
+      skills: [...profile.skills, { name: 'Git', category: 'Herramientas' }],
+    };
+    const cv = { ...validCv, skills: ['GitHub'] };
+
+    expect(validateTailoredCV(cv, profileWithGit)).toEqual([]);
+  });
+
+  it('rechaza skills de productos distintos aunque la familia se parezca', () => {
+    // MongoDB no equivale a nada declarado en el perfil.
+    const cv = { ...validCv, skills: ['MongoDB'] };
+    expect(validateTailoredCV(cv, profile).map((issue) => issue.code)).toContain('unknown-skill');
   });
 
   it('rechaza una cifra nueva en un bullet', () => {

@@ -1,5 +1,22 @@
 # Progreso
 
+## Mejoras de adaptación (2026-11-12, tarde)
+
+- [x] **Nombre del PDF con el nombre completo**: antes tomaba solo primer
+  nombre + primer apellido (`Pedro_Pariani`); ahora usa todas las partes
+  (`Pedro_Espejo_Pariani_Puesto_Empresa.pdf`).
+- [x] **El puesto detectado se usa en el CV**: `detectOfferMeta` corre antes de
+  generar y el puesto objetivo viaja al prompt como `headline` obligatorio.
+- [x] **El CV fuente es guía, no lista cerrada** (prompt `cv.system.md`): se
+  pide adaptar lo más pegado posible a la oferta sin inventar nada.
+- [x] **Equivalencias de nombre entre skills** (`src/shared/skills.ts`): saber
+  Git valida/nombra GitHub (y viceversa), K8s ↔ Kubernetes, Node ↔ Node.js,
+  etc. Dos variantes de la misma base NO son equivalentes (GitLab ≠ GitHub) y
+  productos distintos no se igualan (PostgreSQL ≠ MySQL). Vale tanto para la
+  validación del CV contra el perfil como para el match de keywords de la
+  oferta.
+- [x] 125 tests de Vitest + 2 E2E pasan.
+
 ## Corrección del error de guardado (2026-11-12)
 
 - [x] El error "La postulación no es válida…" ahora muestra el campo exacto que

@@ -23,10 +23,10 @@ export function sanitizeFilenamePart(value: string, maxLength = 30): string {
 }
 
 export function buildPdfFilename(input: FilenameInput, kind: PdfKind): string {
-  const nameParts = input.fullName.trim().split(/\s+/).filter(Boolean);
-  const firstName = nameParts[0] ?? '';
-  const lastName = nameParts.length > 1 ? (nameParts[nameParts.length - 1] ?? '') : '';
-  const pieces = [firstName, lastName, input.position, input.company]
+  // Nombre completo: no se pierden apellidos compuestos ("Pedro Espejo Pariani"
+  // debe quedar Pedro_Espejo_Pariani, no Pedro_Pariani).
+  const name = sanitizeFilenamePart(input.fullName, 60);
+  const pieces = [name, input.position, input.company]
     .map((part) => sanitizeFilenamePart(part))
     .filter((part) => part.length > 0);
 

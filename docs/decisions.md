@@ -623,6 +623,39 @@ volverá a pedir perfil si se entra por `/postulaciones/nueva` sin perfil.
 El toggle de tema pasó de texto a un botón circular con ícono de sol/luna en el
 extremo derecho del encabezado, con `aria-label` y `title` para accesibilidad.
 
+## 2026-11-12 — Mejoras de adaptación
+
+### D-035 — Nombre de PDF, puesto objetivo y equivalencias de skills
+
+**Nombre del PDF:** `buildPdfFilename` tomaba primer nombre + último apellido.
+Con nombres con dos apellidos ("Pedro Espejo Pariani") producía
+`Pedro_Pariani_...`, perdiendo el primer apellido. Ahora usa el nombre
+completo sanitizado (`Pedro_Espejo_Pariani_Puesto_Empresa.pdf`), con el mismo
+límite de largo y deduplicación previa.
+
+**Puesto objetivo en el CV:** el punto de detectar el puesto es usarlo. En
+`preview`, `detectOfferMeta` corre **antes** de generar el CV y el puesto
+detectado se agrega al prompt como `PUESTO OBJETIVO`, con la instrucción de
+usarlo como `headline` del CV (traducido si la oferta está en otro idioma). No
+se cambia el `role` de las experiencias: eso sigue siendo dato del perfil.
+
+**El CV fuente es guía:** el prompt ahora pide adaptación fuerte (reordenar,
+omitir, reformular) con el único límite de no inventar nada.
+
+**Equivalencias de nombre (`src/shared/skills.ts`):** familias con base y
+variantes (`git` → github/gitlab/bitbucket, `kubernetes` → k8s, `node` →
+nodejs, `postgresql` → postgres, etc.). Reglas:
+
+- saber la base permite nombrar cualquier variante y viceversa (Git ↔ GitHub);
+- dos variantes de la misma base NO son equivalentes (GitLab ≠ GitHub,
+  React ≠ React Native);
+- productos distintos nunca se igualan (PostgreSQL ≠ MySQL).
+
+Se usa en dos lugares con el mismo código: `validateTailoredCV` (skills del CV
+contra el perfil) y `matchKeywords` (keywords de la oferta contra el texto del
+CV). Así, una oferta que pide GitHub se considera cubierta si el perfil
+declara Git, y la IA puede listar GitHub sin que el guardado lo rechace.
+
 ## 2026-11-12 — Corrección del error "La postulación no es válida"
 
 ### D-033 — Diagnóstico y arreglo

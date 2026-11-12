@@ -20,6 +20,18 @@ describe('filename', () => {
     expect(sanitizeFilenamePart('Ana Pérez / Data & Analytics')).toBe('Ana_Perez_Data_Analytics');
   });
 
+  it('mantiene los apellidos compuestos del nombre completo', () => {
+    const input = {
+      fullName: 'Pedro Espejo Pariani',
+      position: 'Desarrollador Backend',
+      company: 'Andes Market',
+    };
+
+    expect(buildPdfFilename(input, 'cv')).toBe(
+      'Pedro_Espejo_Pariani_Desarrollador_Backend_Andes_Market.pdf',
+    );
+  });
+
   it('arma el nombre del CV y de la carta', () => {
     const input = {
       fullName: 'Ana Pérez',

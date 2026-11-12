@@ -1,4 +1,5 @@
 import type { CoverLetter, MasterProfile, TailoredCV } from './schemas.js';
+import { skillsMatch } from './skills.js';
 
 export interface ValidationIssue {
   code: string;
@@ -46,7 +47,7 @@ export function findNewNumbers(text: string, allowedText: string): string[] {
 export function validateTailoredCV(cv: TailoredCV, profile: MasterProfile): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const experiences = new Map(profile.experience.map((experience) => [experience.id, experience]));
-  const profileSkills = new Set(profile.skills.map((skill) => normalizeText(skill.name)));
+  const profileSkills = profile.skills.map((skill) => normalizeText(skill.name));
   const profileText = JSON.stringify(profile);
 
   cv.experience.forEach((tailoredExperience, experienceIndex) => {
@@ -89,7 +90,7 @@ export function validateTailoredCV(cv: TailoredCV, profile: MasterProfile): Vali
   });
 
   cv.skills.forEach((skill, skillIndex) => {
-    if (!profileSkills.has(normalizeText(skill))) {
+    if (!profileSkills.some((profileSkill) => skillsMatch(profileSkill, skill))) {
       issues.push({
         code: 'unknown-skill',
         path: `skills[${skillIndex}]`,

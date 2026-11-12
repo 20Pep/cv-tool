@@ -31,6 +31,8 @@ export interface TailorInput {
   offerText: string;
   draftText?: string;
   model: ModelRef;
+  /** Puesto objetivo detectado de la oferta, para el titular del CV. */
+  targetPosition?: string;
 }
 
 export interface TailorService {
@@ -46,14 +48,18 @@ export function createTailorService(factory: ProviderFactory = createProvider): 
         readFile(path.join(PACKAGE_ROOT, 'prompts', 'letter.system.md'), 'utf8'),
       ]);
 
-      const tailoredCv = await generateCvWithRetry(provider, cvPrompt, input);
+      const meta = detectOfferMeta(input.offerText);
+      const targetPosition = input.targetPosition ?? meta.suggestedPosition;
+
+      const tailoredCv = await generateCvWithRetry(provider, cvPrompt, {
+        ...input,
+        ...(targetPosition.length > 0 ? { targetPosition } : {}),
+      });
       const coverLetter = await generateLetterWithRetry(provider, letterPrompt, input);
 
       const offerKeywords = extractKeywords(input.offerText, { limit: KEYWORD_LIMIT });
       const cvText = buildCvTextForMatch(input.profile, tailoredCv);
       const keywords = matchKeywords(offerKeywords, cvText);
-      const meta = detectOfferMeta(input.offerText);
-
       return {
         tailoredCv: {
           ...tailoredCv,
@@ -153,7 +159,7 @@ async function generateCvWithRetry(
   let lastError: unknown;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    const user = `${buildCvUser(input.profile, input.offerText)}${retryNote(lastError)}`;
+    const user = `${buildCvUser(input.profile, input.offerText, input.targetPosition)}${retryNote(lastError)}`;
 
     try {
       const raw = await provider.generate({
@@ -266,7 +272,7 @@ function parseLetter(raw: string, input: TailorInput): CoverLetter {
   return parsed.data;
 }
 
-function buildCvUser(profile: MasterProfile, offerText: string): string {
+function buildCvUser(profile: MasterProfile, offerText: string, targetPosition?: string): string {
   return [
     'PERFIL (JSON, fuente de verdad):',
     '<perfil>',
@@ -277,6 +283,13 @@ function buildCvUser(profile: MasterProfile, offerText: string): string {
     '<oferta>',
     offerText.trim(),
     '</oferta>',
+    ...(targetPosition === undefined
+      ? []
+      : [
+          '',
+          `PUESTO OBJETIVO (detectado de la oferta): ${targetPosition}`,
+          'Usalo como `headline` del CV (traducido si la oferta está en otro idioma).',
+        ]),
   ].join('\n');
 }
 

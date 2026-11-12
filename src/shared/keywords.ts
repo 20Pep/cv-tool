@@ -1,3 +1,5 @@
+import { skillVariants } from './skills.js';
+
 const SPANISH_STOPWORDS = new Set([
   'a',
   'al',
@@ -564,10 +566,18 @@ export function matchKeywords(offerKeywords: string[], cvText: string): KeywordM
   const missing: string[] = [];
 
   for (const keyword of offerKeywords) {
-    const normalized = normalizeForMatch(keyword);
-    const pattern = new RegExp(`(?:^| )${escapeRegExp(normalized)}(?: |$)`);
+    // Equivalencias de nombre (Git/GitHub, K8s/Kubernetes…): si el CV nombra
+    // cualquier variante del grupo, la keyword está cubierta.
+    const variants = skillVariants(keyword);
+    const matchedKeyword =
+      variants.length > 0 &&
+      variants.some((variant) => {
+        const pattern = new RegExp(`(?:^| )${escapeRegExp(variant)}(?: |$)`);
 
-    if (pattern.test(cv)) {
+        return pattern.test(cv);
+      });
+
+    if (matchedKeyword) {
       matched.push(keyword);
     } else {
       missing.push(keyword);
