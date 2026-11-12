@@ -465,8 +465,9 @@ export function normalizeForMatch(text: string): string {
 
 export function extractKeywords(text: string, options: KeywordOptions = {}): string[] {
   const limit = options.limit ?? 30;
-  const lines = candidateLines(text);
-  const requirementText = normalizeForMatch(extractRequirementText(text));
+  const source = text.replace(/<!--[\s\S]*?-->/g, ' ');
+  const lines = candidateLines(source);
+  const requirementText = normalizeForMatch(extractRequirementText(source));
   const counts = new Map<string, number>();
 
   for (const line of lines) {

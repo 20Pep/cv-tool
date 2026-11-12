@@ -404,6 +404,46 @@ herramientas, tablas, columnas, PDFs escaneados).
   ofertas reales.
 - El match % es una señal, no una decisión: la persona revisa la vista previa.
 
+## 2026-11-12 — Paso 5: generación de CV y carta
+
+### D-024 — TailorService y vista previa
+
+**Decisión:**
+
+- `createTailorService` usa `prompts/cv.system.md` y
+  `prompts/letter.system.md`, el perfil guardado, la oferta y el borrador
+  opcional.
+- CV y carta se generan en llamadas secuenciales para no depender de
+  concurrencia todavía no verificada.
+- Cada salida pasa por Zod y por `validate.ts`. Si falla, se reintenta una vez
+  enviando el error concreto; si vuelve a fallar, se devuelve un error claro.
+- Las keywords y el match % se calculan con `keywords.ts` sobre el CV final y
+  reemplazan `keywordsUsed`/`keywordsMissing` del modelo.
+- `TailoredCV` se amplió con `headline` y `experience[].role` opcionales para
+  traducir el titular y el cargo al idioma de la oferta. Las skills siguen
+  siendo un subconjunto del perfil para no perder trazabilidad.
+- La empresa y el puesto se sugieren con hechos del texto (`# Puesto`,
+  `**Empresa:**`), no con una llamada extra a la IA.
+- La UI permite editar el CV y la carta como JSON y valida el esquema antes de
+  actualizar la vista previa. El guardado y los PDFs quedan para el Paso 6.
+
+**Verificación real:**
+
+- Oferta ES: match 69%, 9 keywords cubiertas, 4 faltantes (`python`,
+  `abastecimiento`, `metricas`, `recurrentes`).
+- Oferta con prompt injection: el CV quedó en inglés, con las skills reales del
+  perfil; no aparecieron Kubernetes, Rust, 7 años ni acciones de archivo.
+- `/postulaciones/nueva`: 200.
+
+**Límites:**
+
+- Las keywords ocultas en comentarios HTML se ignoran, pero una nota visible
+  dentro de la oferta todavía puede aportar términos raros al match.
+- Editar el JSON no recalcula el match; se recalcula al volver a generar o en
+  una iteración futura.
+- Las skills no se traducen; en ofertas en inglés pueden quedar nombres en
+  español.
+
 ## [VERIFICAR] de PROJECT.md §10.2
 
 | Punto | Resultado |

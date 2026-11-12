@@ -68,6 +68,13 @@ describe('extractKeywords', () => {
     expect(keywords).not.toContain('bi');
   });
 
+  it('ignora las instrucciones ocultas en comentarios HTML', () => {
+    const keywords = extractKeywords(readOffer('prompt-injection'));
+
+    expect(keywords).not.toContain('kubernetes');
+    expect(keywords).not.toContain('rust');
+  });
+
   it('funciona con las cinco ofertas sin explotar', () => {
     for (const text of Object.values(offers)) {
       const keywords = extractKeywords(text, { limit: 20 });

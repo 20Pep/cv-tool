@@ -206,12 +206,42 @@ npm run dev
 - Las keywords del modelo (`keywordsUsed`/`keywordsMissing`) se van a
   reemplazar por las calculadas en código en el Paso 5.
 
-**Próximo paso:** Paso 5 — generación de CV y carta con reintentos y vista previa.
+## Paso 5 — Generación de CV y carta
+
+**Estado:** completado (2026-11-12).
+
+- [x] `tailor.ts`: genera CV y carta con los prompts, valida con Zod y
+      `validate.ts`, y reintenta hasta dos veces con el error concreto.
+- [x] `TailoredCV` acepta `headline` y `role` opcionales para traducir el
+      titular y el cargo al idioma de la oferta.
+- [x] Las keywords y el match % se calculan por código y reemplazan las que
+      devuelve el modelo.
+- [x] `POST /api/applications/preview` con detección simple de empresa/puesto.
+- [x] Pantalla `/postulaciones/nueva`: oferta, borrador de carta, empresa,
+      puesto, URL, vista previa, keywords, match % y edición JSON validada.
+- [x] Tests con proveedor falso: generación, reintentos, errores y API.
+- [x] Prueba real con OpenCode Go: oferta ES con **69% de match**, 9 keywords
+      cubiertas y 4 faltantes.
+- [x] Oferta con prompt injection: no agregó Kubernetes/Rust, no inventó 7 años
+      y no escribió archivos; `/postulaciones/nueva` responde 200.
+
+**Observaciones:**
+
+- El CV y la carta se generan en llamadas secuenciales; la latencia puede ser
+  de uno a varios minutos.
+- La edición de la vista previa es JSON y todavía no guarda la postulación ni
+  recalcula el match después de editar. Eso llega en el Paso 6.
+- `headline` y `role` se traducen, pero las skills se mantienen como están en
+  el perfil. En ofertas en inglés puede quedar alguna skill en español.
+- La empresa y el puesto se sugieren con heurísticas a partir del texto; la
+  persona los confirma.
+- No se ejecuta nada del texto de la oferta: el adaptador usa `generate/text`
+  sin herramientas.
+
+**Próximo paso:** Paso 6 — plantilla ATS, PDFs y nombre de archivo.
 
 ## Pasos siguientes
 
-- [ ] Paso 5 — Generación y validación con reintentos.
-- [ ] Paso 5 — Generación y validación con reintentos.
 - [ ] Paso 6 — Render y archivos.
 - [ ] Paso 7 — Tracker.
 - [ ] Paso 8 — Pulido y publicación.

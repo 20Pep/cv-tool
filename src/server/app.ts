@@ -6,8 +6,10 @@ import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyError, type FastifyInstance, LogController } from 'fastify';
 import type { AppConfig } from './config.js';
 import { type AppDatabase, openDatabase } from './db.js';
+import { createTailorService, type TailorService } from './generate/tailor.js';
 import { createProfileBuilder, type ProfileBuilder } from './profile/buildProfile.js';
 import { createProviderService, type ProviderService } from './providers/service.js';
+import { registerApplicationRoutes } from './routes/applications.js';
 import { registerDocumentRoutes } from './routes/documents.js';
 import { registerProfileRoutes } from './routes/profile.js';
 import { registerProviderRoutes } from './routes/providers.js';
@@ -26,12 +28,14 @@ export interface AppContext {
   config: AppConfig;
   providerService: ProviderService;
   profileBuilder: ProfileBuilder;
+  tailorService: TailorService;
   close(): Promise<void>;
 }
 
 export interface BuildAppOptions {
   providerService?: ProviderService;
   profileBuilder?: ProfileBuilder;
+  tailorService?: TailorService;
 }
 
 export async function buildApp(
@@ -49,6 +53,7 @@ export async function buildApp(
   const db = openDatabase(config.dbPath, config.migrationsDir);
   const providerService = options.providerService ?? createProviderService();
   const profileBuilder = options.profileBuilder ?? createProfileBuilder();
+  const tailorService = options.tailorService ?? createTailorService();
   const app = Fastify({
     logger: false,
     logController: new LogController({ disableRequestLogging: true }),
@@ -81,6 +86,7 @@ export async function buildApp(
   registerProviderRoutes(app, db, providerService);
   registerDocumentRoutes(app, db, config);
   registerProfileRoutes(app, db, profileBuilder);
+  registerApplicationRoutes(app, db, tailorService);
 
   if (config.isDev) {
     app.get('/', async () => ({
@@ -129,6 +135,7 @@ export async function buildApp(
     config,
     providerService,
     profileBuilder,
+    tailorService,
     close: async () => {
       await app.close();
       db.close();

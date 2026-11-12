@@ -1,0 +1,406 @@
+import { type ChangeEvent, useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router';
+import {
+  CoverLetter as CoverLetterSchema,
+  type MasterProfile,
+  type PreviewApplicationResponse,
+  PreviewApplicationResponse as PreviewApplicationResponseSchema,
+  ProfileResponse as ProfileResponseSchema,
+  TailoredCV as TailoredCVSchema,
+} from '../../shared/schemas';
+import { apiGet, apiSend } from '../lib/api';
+
+export function NewApplicationPage() {
+  const [profile, setProfile] = useState<MasterProfile | null>(null);
+  const [offerText, setOfferText] = useState('');
+  const [draftText, setDraftText] = useState('');
+  const [company, setCompany] = useState('');
+  const [position, setPosition] = useState('');
+  const [url, setUrl] = useState('');
+  const [preview, setPreview] = useState<PreviewApplicationResponse | null>(null);
+  const [cvJson, setCvJson] = useState('');
+  const [letterJson, setLetterJson] = useState('');
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const loadProfile = useCallback(async () => {
+    setLoadingProfile(true);
+    setError(null);
+
+    try {
+      const response = await apiGet('/api/profile', ProfileResponseSchema);
+      setProfile(response.profile);
+    } catch (caught) {
+      setError(messageFor(caught));
+    } finally {
+      setLoadingProfile(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile]);
+
+  const generate = async () => {
+    setGenerating(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const result = await apiSend(
+        '/api/applications/preview',
+        'POST',
+        {
+          offerText,
+          ...(draftText.trim().length === 0 ? {} : { draftText }),
+          ...(url.trim().length === 0 ? {} : { url }),
+        },
+        PreviewApplicationResponseSchema,
+      );
+
+      setPreview(result);
+      setCvJson(JSON.stringify(result.tailoredCv, null, 2));
+      setLetterJson(JSON.stringify(result.coverLetter, null, 2));
+      setCompany((current) => (current.length === 0 ? result.suggestedCompany : current));
+      setPosition((current) => (current.length === 0 ? result.suggestedPosition : current));
+      setMessage('Vista previa generada. Revisá el CV, la carta y las keywords.');
+    } catch (caught) {
+      setError(messageFor(caught));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const validateEdits = () => {
+    if (preview === null) {
+      return;
+    }
+
+    let cvValue: unknown;
+    let letterValue: unknown;
+
+    try {
+      cvValue = JSON.parse(cvJson);
+      letterValue = JSON.parse(letterJson);
+    } catch {
+      setError('El CV o la carta editados no son JSON válido.');
+      return;
+    }
+
+    const cv = TailoredCVSchema.safeParse(cvValue);
+    const letter = CoverLetterSchema.safeParse(letterValue);
+
+    if (!cv.success || !letter.success) {
+      setError('El CV o la carta editados no cumplen el esquema.');
+      return;
+    }
+
+    setPreview({ ...preview, tailoredCv: cv.data, coverLetter: letter.data });
+    setError(null);
+    setMessage('Edición validada. Los cambios están en la vista previa.');
+  };
+
+  const canGenerate =
+    profile !== null && offerText.trim().length >= 50 && !generating && !loadingProfile;
+
+  return (
+    <div>
+      <header className="mb-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+          Nueva postulación
+        </p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Adaptá tu CV y tu carta</h1>
+        <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+          Pegá la oferta. cv-tool genera un CV y una carta usando solo tu perfil, calcula las
+          keywords cubiertas y te deja revisar todo antes de guardar.
+        </p>
+      </header>
+
+      {loadingProfile ? (
+        <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
+          Cargando tu perfil…
+        </p>
+      ) : null}
+
+      {!loadingProfile && profile === null ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+          <p className="font-medium">Primero necesitás un perfil maestro.</p>
+          <p className="mt-1">
+            Subí tu CV en <strong>Perfil</strong> y generá o completá el perfil antes de postularte.
+          </p>
+          <Link
+            to="/perfil"
+            className="mt-4 inline-block rounded-lg bg-amber-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-800"
+          >
+            Ir a Perfil
+          </Link>
+        </section>
+      ) : null}
+
+      {!loadingProfile && profile !== null ? (
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold">Oferta</h2>
+
+            <label className="mt-4 block">
+              <span className="text-sm font-medium text-slate-700">Texto de la oferta</span>
+              <textarea
+                value={offerText}
+                onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                  setOfferText(event.target.value)
+                }
+                placeholder="Pegá acá el texto completo de la oferta…"
+                className="mt-2 min-h-[16rem] w-full rounded-xl border border-slate-300 bg-white p-4 text-sm leading-6 text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+              />
+            </label>
+            <p className="mt-1 text-xs text-slate-500">
+              Mínimo 50 caracteres. El texto de la oferta se trata como datos, no como
+              instrucciones.
+            </p>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              <label className="block">
+                <span className="text-sm font-medium text-slate-700">Empresa</span>
+                <input
+                  value={company}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    setCompany(event.target.value)
+                  }
+                  className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-slate-700">Puesto</span>
+                <input
+                  value={position}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    setPosition(event.target.value)
+                  }
+                  className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-slate-700">URL (opcional)</span>
+                <input
+                  value={url}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => setUrl(event.target.value)}
+                  className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              </label>
+            </div>
+
+            <label className="mt-5 block">
+              <span className="text-sm font-medium text-slate-700">
+                Borrador de carta (opcional)
+              </span>
+              <textarea
+                value={draftText}
+                onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                  setDraftText(event.target.value)
+                }
+                placeholder="Si ya escribiste una carta, pegala acá para conservar tu voz…"
+                className="mt-2 min-h-[8rem] w-full rounded-xl border border-slate-300 bg-white p-4 text-sm leading-6 text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+              />
+            </label>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void generate()}
+                disabled={!canGenerate}
+                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {generating ? 'Generando CV y carta…' : 'Generar vista previa'}
+              </button>
+              <span className="text-xs text-slate-500">
+                Usa el modelo elegido en Ajustes. Puede tardar uno o dos minutos.
+              </span>
+            </div>
+          </section>
+
+          {preview !== null ? (
+            <>
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold">Keywords y match</h2>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Calculado por código a partir de la oferta y el CV final.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                    {preview.keywords.matchPct}% de match
+                  </span>
+                </div>
+
+                <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                      Cubiertas ({preview.keywords.matched.length})
+                    </h3>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {preview.keywords.matched.map((keyword) => (
+                        <span
+                          key={keyword}
+                          className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs text-emerald-800"
+                        >
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                      Faltantes ({preview.keywords.missing.length})
+                    </h3>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {preview.keywords.missing.length === 0 ? (
+                        <span className="text-xs text-slate-500">Ninguna: el CV cubre todas.</span>
+                      ) : (
+                        preview.keywords.missing.map((keyword) => (
+                          <span
+                            key={keyword}
+                            className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs text-amber-800"
+                          >
+                            {keyword}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-semibold">Vista previa del CV</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  {company || position
+                    ? `${position || 'Puesto'} · ${company || 'Empresa'}`
+                    : 'Revisá el contenido y completá empresa y puesto.'}
+                </p>
+
+                <div className="mt-5 rounded-xl bg-slate-50 p-5">
+                  <h3 className="text-xl font-semibold text-slate-900">
+                    {profile.basics.fullName}
+                  </h3>
+                  <p className="text-sm text-slate-600">
+                    {preview.tailoredCv.headline ?? profile.basics.headline ?? ''}
+                  </p>
+                  <p className="mt-4 text-sm leading-6 text-slate-700">
+                    {preview.tailoredCv.summary}
+                  </p>
+
+                  <div className="mt-5 space-y-4">
+                    {preview.tailoredCv.experience.map((experience) => {
+                      const source = profile.experience.find(
+                        (candidate) => candidate.id === experience.experienceId,
+                      );
+
+                      return (
+                        <div key={experience.experienceId}>
+                          <p className="text-sm font-semibold text-slate-900">
+                            {experience.role ?? source?.role ?? 'Experiencia'} —{' '}
+                            {source?.company ?? ''}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {source?.start ?? ''} – {source?.end ?? 'Actual'}
+                          </p>
+                          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
+                            {experience.bullets.map((bullet) => (
+                              <li key={bullet.sourceBulletId}>{bullet.text}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-5">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Habilidades
+                    </p>
+                    <p className="mt-1 text-sm text-slate-700">
+                      {preview.tailoredCv.skills.join(' · ')}
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-semibold">Vista previa de la carta</h2>
+                <div className="mt-5 rounded-xl bg-slate-50 p-5 text-sm leading-7 text-slate-700">
+                  <p>{preview.coverLetter.greeting}</p>
+                  {preview.coverLetter.paragraphs.map((paragraph) => (
+                    <p key={paragraph} className="mt-3">
+                      {paragraph}
+                    </p>
+                  ))}
+                  <p className="mt-3">{preview.coverLetter.closing}</p>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-semibold">Editar antes de guardar</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Por ahora la edición es JSON. El guardado y los PDFs llegan con el siguiente paso.
+                </p>
+
+                <div className="mt-4 grid gap-5 lg:grid-cols-2">
+                  <label className="block">
+                    <span className="text-sm font-medium text-slate-700">CV adaptado (JSON)</span>
+                    <textarea
+                      value={cvJson}
+                      onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                        setCvJson(event.target.value)
+                      }
+                      spellCheck={false}
+                      className="mt-2 min-h-[22rem] w-full rounded-xl border border-slate-300 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-100 outline-none focus:border-slate-500"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-medium text-slate-700">Carta (JSON)</span>
+                    <textarea
+                      value={letterJson}
+                      onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                        setLetterJson(event.target.value)
+                      }
+                      spellCheck={false}
+                      className="mt-2 min-h-[22rem] w-full rounded-xl border border-slate-300 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-100 outline-none focus:border-slate-500"
+                    />
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={validateEdits}
+                  className="mt-4 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Validar edición
+                </button>
+              </section>
+            </>
+          ) : null}
+
+          <div aria-live="polite">
+            {message === null ? null : (
+              <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                {message}
+              </p>
+            )}
+            {error === null ? null : (
+              <p className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+                {error}
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function messageFor(error: unknown): string {
+  return error instanceof Error ? error.message : 'Ocurrió un error inesperado.';
+}

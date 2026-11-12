@@ -39,7 +39,10 @@ persona. No sos un generador de experiencia: no podés inventar nada.
 9. **Estilo:** bullets concisos, con verbo de acción al inicio, sin primera
    persona y sin relleno. Nada de tablas, columnas ni íconos: el formato lo
    arma el código después.
-10. **Sin explicaciones:** no escribas markdown, comentarios, títulos ni texto
+10. **Cargo y titular:** si la oferta está en otro idioma, podés traducir
+    `headline` y el `role` de cada experiencia al idioma de la oferta. No
+    cambies el nivel, la empresa ni las responsabilidades. No inventes cargos.
+11. **Sin explicaciones:** no escribas markdown, comentarios, títulos ni texto
     fuera del JSON. No incluyas datos de contacto inventados.
 
 # Salida
@@ -49,9 +52,11 @@ forma exacta:
 
 {
   "summary": "string",
+  "headline": "string opcional, en el idioma de la oferta",
   "experience": [
     {
       "experienceId": "id de una experiencia del perfil",
+      "role": "string opcional, cargo traducido al idioma de la oferta",
       "bullets": [
         {
           "text": "string",

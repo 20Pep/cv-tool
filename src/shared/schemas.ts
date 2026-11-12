@@ -82,9 +82,11 @@ export type MasterProfile = z.infer<typeof MasterProfile>;
 export const TailoredCV = z
   .object({
     summary: z.string(),
+    headline: z.string().optional(),
     experience: z.array(
       z.object({
         experienceId: z.string(),
+        role: z.string().optional(),
         bullets: z.array(
           z.object({
             text: z.string(),
@@ -256,3 +258,32 @@ export const GenerateProfileResponse = z.object({
 });
 
 export type GenerateProfileResponse = z.infer<typeof GenerateProfileResponse>;
+
+export const KeywordMatch = z.object({
+  keywords: z.array(z.string()),
+  matched: z.array(z.string()),
+  missing: z.array(z.string()),
+  matchPct: z.number().min(0).max(100),
+});
+
+export type KeywordMatch = z.infer<typeof KeywordMatch>;
+
+export const PreviewApplicationRequest = z
+  .object({
+    offerText: z.string().min(50, 'La oferta es demasiado corta.'),
+    draftText: z.string().optional(),
+    url: z.string().optional(),
+  })
+  .strict();
+
+export type PreviewApplicationRequest = z.infer<typeof PreviewApplicationRequest>;
+
+export const PreviewApplicationResponse = z.object({
+  tailoredCv: TailoredCV,
+  coverLetter: CoverLetter,
+  keywords: KeywordMatch,
+  suggestedCompany: z.string(),
+  suggestedPosition: z.string(),
+});
+
+export type PreviewApplicationResponse = z.infer<typeof PreviewApplicationResponse>;

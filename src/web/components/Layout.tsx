@@ -22,6 +22,9 @@ export function Layout() {
             <NavLink to="/perfil" className={navClass}>
               Perfil
             </NavLink>
+            <NavLink to="/postulaciones/nueva" className={navClass}>
+              Nueva
+            </NavLink>
             <NavLink to="/ajustes" className={navClass}>
               Ajustes
             </NavLink>
