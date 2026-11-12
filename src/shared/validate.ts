@@ -1,4 +1,4 @@
-import type { CoverLetter, MasterProfile, TailoredCV } from '../../shared/schemas.js';
+import type { CoverLetter, MasterProfile, TailoredCV } from './schemas.js';
 
 export interface ValidationIssue {
   code: string;

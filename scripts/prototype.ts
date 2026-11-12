@@ -2,14 +2,10 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseJsonObject } from '../src/server/generate/json.js';
-import {
-  normalizeText,
-  validateCoverLetter,
-  validateTailoredCV,
-} from '../src/server/generate/validate.js';
 import type { LLMProvider, ModelRef } from '../src/server/providers/index.js';
 import { createProvider, ProviderError } from '../src/server/providers/index.js';
 import { CoverLetter, MasterProfile, TailoredCV } from '../src/shared/schemas.js';
+import { normalizeText, validateCoverLetter, validateTailoredCV } from '../src/shared/validate.js';
 
 interface Parser<T> {
   parse(value: unknown): T;

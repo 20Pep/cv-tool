@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { type MasterProfile, MasterProfile as MasterProfileSchema } from '../../shared/schemas.js';
+import { normalizeText } from '../../shared/validate.js';
 import type { DocumentSource } from '../documents.js';
 import { parseJsonObject } from '../generate/json.js';
-import { normalizeText } from '../generate/validate.js';
 import { PACKAGE_ROOT } from '../paths.js';
 import { createProvider, type LLMProvider, type ModelRef } from '../providers/index.js';
 import type { ProviderFactory } from '../providers/service.js';

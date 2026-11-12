@@ -1,5 +1,29 @@
 # Progreso
 
+## Corrección del error de guardado (2026-11-12)
+
+- [x] El error "La postulación no es válida…" ahora muestra el campo exacto que
+  falla (`en tailoredCv.skills.3: …`).
+- [x] `validate.ts` y `keywords.ts` se movieron a `src/shared/`: la UI valida con
+  el mismo código que el servidor al hacer "Validar edición" (skills del perfil,
+  `sourceBulletId`, cifras nuevas).
+- [x] "Validar edición" recalcula keywords y match % en vivo con el mismo código
+  del servidor; el badge de match se actualiza antes de guardar.
+- [x] Detección de empresa y puesto mejorada para ofertas sin encabezados ni
+  campos `**empresa:**`: extrae el puesto de frases como "en la búsqueda de
+  un/a X…" y la empresa de "Desde X nos encontramos…", tolera saltos de línea
+  dentro de la frase y limita el resultado a 60 caracteres.
+- [x] Nuevo E2E (`tests/e2e/zz-application-flow.spec.ts`): reproduce el flujo
+  completo (oferta pegada → vista previa con IA simulada → edición inválida
+  rechazada en la UI con detalle → edición válida con match recalculado →
+  guardado real → descarga de CV y carta en PDF). El resto del flujo corre de
+  verdad contra el servidor.
+- [x] `playwright.config.ts` con `workers: 1` para que el orden de los specs sea
+  determinista.
+- [x] 115 tests de Vitest + 2 E2E pasan.
+- [x] Oferta ficticia nueva `fixtures/offers/analista-ia-es.md` con el mismo
+  estilo (introducción larga, sin campos explícitos).
+
 ## Paso 0 — Prototipo de prompts y spike de OpenCode
 
 **Estado:** completado con observaciones (2026-11-10).

@@ -1,5 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { buildCvTextForMatch } from '../../shared/cvText.js';
+import { extractKeywords, matchKeywords } from '../../shared/keywords.js';
 import {
   type CoverLetter,
   CoverLetter as CoverLetterSchema,
@@ -8,9 +10,8 @@ import {
   type TailoredCV,
   TailoredCV as TailoredCVSchema,
 } from '../../shared/schemas.js';
+import { validateCoverLetter, validateTailoredCV } from '../../shared/validate.js';
 import { parseJsonObject } from '../generate/json.js';
-import { extractKeywords, matchKeywords } from '../generate/keywords.js';
-import { validateCoverLetter, validateTailoredCV } from '../generate/validate.js';
 import { PACKAGE_ROOT } from '../paths.js';
 import { createProvider, type LLMProvider, type ModelRef } from '../providers/index.js';
 import type { ProviderFactory } from '../providers/service.js';
@@ -73,8 +74,8 @@ export function detectOfferMeta(offerText: string): {
 } {
   const positionMatch =
     offerText.match(/^\s*#\s+(.+)$/m) ??
-    offerText.match(/^\s*\*\*(?:puesto|position)\s*:\*\*\s*(.+)$/im) ??
-    offerText.match(/^\s*(?:puesto|position)\s*:\s*(.+)$/im);
+    offerText.match(/^\s*\*\*(?:puesto|position|cargo)\s*:\*\*\s*(.+)$/im) ??
+    offerText.match(/^\s*(?:puesto|position|cargo)\s*:\s*(.+)$/im);
   const companyMatch =
     offerText.match(/^\s*\*\*(?:empresa|company)\s*:\*\*\s*(.+)$/im) ??
     offerText.match(/^\s*(?:empresa|company)\s*:\s*(.+)$/im);
@@ -84,16 +85,64 @@ export function detectOfferMeta(offerText: string): {
     .find(
       (line) =>
         line.length > 0 &&
+        line.length <= 80 &&
         !line.startsWith('#') &&
         !line.startsWith('**') &&
         !line.startsWith('-') &&
         !line.startsWith('*'),
     );
+  const positionFromText = extractPositionFromSentence(offerText);
+  const companyFromText = extractCompanyFromSentence(offerText);
 
   return {
-    suggestedCompany: cleanMetaValue(companyMatch?.[1]),
-    suggestedPosition: cleanMetaValue(positionMatch?.[1] ?? firstLine),
+    suggestedCompany: cleanMetaValue(companyMatch?.[1] ?? companyFromText),
+    suggestedPosition: cleanMetaValue(positionMatch?.[1] ?? positionFromText ?? firstLine),
   };
+}
+
+/**
+ * Detecta el puesto en frases de introducción como "buscamos un/a Desarrollador/a
+ * Backend…" o "en la búsqueda de un/a Analista de Datos para…". Se evalúa sobre el
+ * texto con saltos de línea convertidos en espacios, porque al pegar una oferta el
+ * texto puede venir con líneas partidas a mitad de frase.
+ */
+function extractPositionFromSentence(offerText: string): string | undefined {
+  const flat = offerText.replace(/\r?\n/g, ' ');
+  const patterns = [
+    /b[uú]squeda de\s+(?:un\/a|unx|un|una)\s+([^.!?]{3,60})/i,
+    /(?:buscamos|se busca)\s+(?:un\/a|unx|un|una)\s+([^.!?]{3,60})/i,
+    /(?:vacante|posici[oó]n|position)\s+(?:de|para|:)\s+([^.!?]{3,60})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = flat.match(pattern);
+
+    if (match?.[1] !== undefined) {
+      const candidate = match[1]
+        .replace(/\s+(?:para|destinad[oa]s?|que)\b.*$/i, '')
+        .replace(/[\s,;:.]+$/, '')
+        .trim();
+
+      if (candidate.length >= 3 && candidate.length <= 60) {
+        return candidate;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/** Detecta la empresa en frases como "Desde X nos encontramos…" o "En X buscamos…". */
+function extractCompanyFromSentence(offerText: string): string | undefined {
+  const flat = offerText.replace(/\r?\n/g, ' ');
+  const match =
+    flat.match(/\bdesde\s+(.+?)\s+nos encontramos/i) ?? flat.match(/\ben\s+(.+?)\s+buscamos/i);
+
+  const candidate = match?.[1]?.replace(/[\s,;:]+$/, '').trim();
+
+  return candidate !== undefined && candidate.length >= 2 && candidate.length <= 60
+    ? candidate
+    : undefined;
 }
 
 async function generateCvWithRetry(
@@ -258,34 +307,7 @@ function buildLetterUser(input: TailorInput): string {
   ].join('\n');
 }
 
-export function buildCvTextForMatch(profile: MasterProfile, cv: TailoredCV): string {
-  const experiences = new Map(profile.experience.map((experience) => [experience.id, experience]));
-  const parts: string[] = [cv.headline ?? '', cv.summary, ...cv.skills];
-
-  for (const tailoredExperience of cv.experience) {
-    const source = experiences.get(tailoredExperience.experienceId);
-    parts.push(tailoredExperience.role ?? source?.role ?? '');
-    parts.push(...tailoredExperience.bullets.map((bullet) => bullet.text));
-  }
-
-  for (const education of profile.education) {
-    parts.push(education.degree, education.institution);
-  }
-
-  for (const project of profile.projects) {
-    parts.push(project.name, project.description, ...project.tech);
-  }
-
-  for (const certification of profile.certifications) {
-    parts.push(certification.name);
-  }
-
-  for (const language of profile.languages) {
-    parts.push(language.name, language.level ?? '');
-  }
-
-  return parts.filter((part) => part.length > 0).join('\n');
-}
+export { buildCvTextForMatch };
 
 function retryNote(lastError: unknown): string {
   if (lastError === undefined) {

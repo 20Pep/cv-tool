@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { type CoverLetter, MasterProfile, type TailoredCV } from '../src/shared/schemas.js';
 import {
   extractNumberTokens,
   normalizeText,
   validateCoverLetter,
   validateTailoredCV,
-} from '../src/server/generate/validate.js';
-import { type CoverLetter, MasterProfile, type TailoredCV } from '../src/shared/schemas.js';
+} from '../src/shared/validate.js';
 
 const profile = MasterProfile.parse(
   JSON.parse(readFileSync(new URL('../fixtures/profile.json', import.meta.url), 'utf8')),

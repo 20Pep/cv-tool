@@ -5,7 +5,7 @@ import {
   extractKeywords,
   matchKeywords,
   normalizeForMatch,
-} from '../src/server/generate/keywords.js';
+} from '../src/shared/keywords.js';
 
 const readOffer = (name: string): string =>
   readFileSync(new URL(`../fixtures/offers/${name}.md`, import.meta.url), 'utf8');

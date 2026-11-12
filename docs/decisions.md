@@ -623,6 +623,43 @@ volverá a pedir perfil si se entra por `/postulaciones/nueva` sin perfil.
 El toggle de tema pasó de texto a un botón circular con ícono de sol/luna en el
 extremo derecho del encabezado, con `aria-label` y `title` para accesibilidad.
 
+## 2026-11-12 — Corrección del error "La postulación no es válida"
+
+### D-033 — Diagnóstico y arreglo
+
+**Causa probable del error reportado:** la UI solo validaba el esquema Zod al
+editar ("Validar edición"), pero `validate.ts` (skills que deben existir en el
+perfil, `sourceBulletId` válidos, cifras nuevas) solo corría en el servidor al
+guardar. Un CV editado (o con un desfase respecto del perfil) pasaba la vista
+previa y explotaba al guardar con un mensaje genérico sin campo ni detalle.
+
+**Cambios:**
+
+- El 400 de `POST /api/applications` ahora incluye el campo y el mensaje del
+  primer issue (`en tailoredCv.skills.3: La skill "Docker" no existe en el
+  perfil.`).
+- `validate.ts` y `keywords.ts` son funciones puras: se movieron a
+  `src/shared/` para que cliente y servidor usen exactamente el mismo código.
+  Los tests siguen pasando sin cambios de expectativas.
+- "Validar edición" ahora corre la validación completa del servidor en la UI y
+  recalcula keywords/match % con `buildCvTextForMatch` (también en `shared/`).
+- `detectOfferMeta` ahora entiende ofertas pegadas como texto plano: extrae el
+  puesto de frases tipo "búsqueda de un/a X" y la empresa de "Desde X nos
+  encontramos", tolera saltos de línea a mitad de frase (el copy/parte parte
+  las líneas) y limita el puesto a 60 caracteres para no guardar un párrafo
+  entero como puesto.
+
+### D-034 — E2E del flujo de postulación
+
+- `tests/e2e/zz-application-flow.spec.ts` corre el flujo completo: el nombre
+  `zz-` es intencional para que ejecute después de `ui.spec.ts`, que valida el
+  estado inicial vacío del tracker (orden determinista con `workers: 1`).
+- La IA se simula interceptando `/api/applications/preview` con Playwright; el
+  guardado, la generación de PDFs, el tracker y las descargas corren de verdad
+  contra el servidor, que no necesita IA para eso.
+- El launch token es de un solo uso, así que el spec arma la sesión con la
+  cookie `cvtool_session` del entorno de pruebas en vez de `?t=…`.
+
 ## [VERIFICAR] de PROJECT.md §10.2
 
 | Punto | Resultado |

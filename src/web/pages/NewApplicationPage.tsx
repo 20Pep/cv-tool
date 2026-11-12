@@ -1,5 +1,8 @@
 import { type ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
+import type { z } from 'zod';
+import { buildCvTextForMatch } from '../../shared/cvText';
+import { extractKeywords, matchKeywords } from '../../shared/keywords';
 import {
   type ApplicationInfo,
   ApplicationResponse as ApplicationResponseSchema,
@@ -10,6 +13,7 @@ import {
   ProfileResponse as ProfileResponseSchema,
   TailoredCV as TailoredCVSchema,
 } from '../../shared/schemas';
+import { validateCoverLetter, validateTailoredCV } from '../../shared/validate';
 import { apiGet, apiSend } from '../lib/api';
 
 export function NewApplicationPage({ initialProfile }: { initialProfile?: MasterProfile } = {}) {
@@ -89,14 +93,48 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
     const cv = TailoredCVSchema.safeParse(cvValue);
     const letter = CoverLetterSchema.safeParse(letterValue);
 
-    if (!cv.success || !letter.success) {
-      setError('El CV o la carta editados no cumplen el esquema.');
+    if (!cv.success) {
+      setError(parseIssueMessage('El CV editado no cumple el esquema', cv.error));
       return;
     }
 
-    setPreview({ ...preview, tailoredCv: cv.data, coverLetter: letter.data });
+    if (!letter.success) {
+      setError(parseIssueMessage('La carta editada no cumple el esquema', letter.error));
+      return;
+    }
+
+    if (profile === null) {
+      setError('No hay perfil cargado para validar los cambios.');
+      return;
+    }
+
+    // Misma validación que el servidor: trazabilidad de bullets, skills del
+    // perfil y cifras nuevas. Así nada llega a guardar para que lo rechacen.
+    const issues = [
+      ...validateTailoredCV(cv.data, profile),
+      ...validateCoverLetter(letter.data, `${JSON.stringify(profile)}\n${offerText}`),
+    ];
+
+    if (issues.length > 0) {
+      setError(issues.map((issue) => issue.message).join(' '));
+      return;
+    }
+
+    // Recalcula keywords y match % con el mismo código que usa el servidor.
+    const offerKeywords = extractKeywords(offerText, { limit: 20 });
+    const match = matchKeywords(offerKeywords, buildCvTextForMatch(profile, cv.data));
+
+    setPreview({
+      tailoredCv: { ...cv.data, keywordsUsed: match.matched, keywordsMissing: match.missing },
+      coverLetter: letter.data,
+      keywords: match,
+      suggestedCompany: preview.suggestedCompany,
+      suggestedPosition: preview.suggestedPosition,
+    });
     setError(null);
-    setMessage('Edición validada. Los cambios están en la vista previa.');
+    setMessage(
+      `Edición validada. Match recalculado: ${match.matchPct}% (${match.missing.length} keywords faltantes).`,
+    );
   };
 
   const saveApplication = async () => {
@@ -434,4 +472,11 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
 
 function messageFor(error: unknown): string {
   return error instanceof Error ? error.message : 'Ocurrió un error inesperado.';
+}
+
+function parseIssueMessage(prefix: string, error: z.ZodError): string {
+  const issue = error.issues[0];
+  const field = issue?.path.join('.');
+
+  return `${prefix}${field ? ` en ${field}` : ''}: ${issue?.message ?? 'formato inesperado.'}`;
 }

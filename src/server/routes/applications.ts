@@ -2,12 +2,14 @@ import { createReadStream, existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
+import { extractKeywords, matchKeywords } from '../../shared/keywords.js';
 import {
   ApplicationStatus,
   CreateApplicationRequest,
   PreviewApplicationRequest,
   UpdateApplicationRequest,
 } from '../../shared/schemas.js';
+import { validateCoverLetter, validateTailoredCV } from '../../shared/validate.js';
 import {
   createApplication,
   getApplication,
@@ -18,14 +20,12 @@ import {
 import type { AppConfig } from '../config.js';
 import type { AppDatabase } from '../db.js';
 import { buildApplicationsWorkbook } from '../export/xlsx.js';
-import { extractKeywords, matchKeywords } from '../generate/keywords.js';
 import {
   buildCvTextForMatch,
   detectOfferMeta,
   TailorError,
   type TailorService,
 } from '../generate/tailor.js';
-import { validateCoverLetter, validateTailoredCV } from '../generate/validate.js';
 import { getStoredProfile } from '../profile/repository.js';
 import { ProviderError } from '../providers/index.js';
 import { renderApplicationPdfs } from '../render/pdf.js';
@@ -108,8 +108,12 @@ export function registerApplicationRoutes(
     const parsed = CreateApplicationRequest.safeParse(request.body);
 
     if (!parsed.success) {
+      const firstIssue = parsed.error.issues[0];
+      const field = firstIssue?.path.join('.');
+      const detail = firstIssue?.message;
+
       return reply.code(400).send({
-        error: 'La postulación no es válida. Revisá el CV, la carta, la empresa y el puesto.',
+        error: `La postulación no es válida${field ? ` en ${field}` : ''}: ${detail ?? 'Revisá el CV y la carta.'}`,
       });
     }
 

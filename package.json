@@ -29,7 +29,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "tsx scripts/dev.ts",
+    "dev": "tsx watch scripts/dev.ts",
     "build": "vite build && tsc -p tsconfig.build.json",
     "start": "node bin/cv-tool.js",
     "prototype": "tsx scripts/prototype.ts",
