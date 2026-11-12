@@ -20,6 +20,25 @@ describe('filename', () => {
     expect(sanitizeFilenamePart('Ana Pérez / Data & Analytics')).toBe('Ana_Perez_Data_Analytics');
   });
 
+  it('quita marcadores de género con barra sin partir palabras', () => {
+    expect(sanitizeFilenamePart('Desarrollador/a Backend con orientación a IA')).toBe(
+      'Desarrollador_Backend_con',
+    );
+    expect(sanitizeFilenamePart('Desarrollador/a Backend con orientación a IA', 60)).toBe(
+      'Desarrollador_Backend_con_orientacion_a_IA',
+    );
+  });
+
+  it('mantiene slashes técnicas como CI/CD', () => {
+    expect(sanitizeFilenamePart('Ingeniero/a CI/CD')).toBe('Ingeniero_CI_CD');
+  });
+
+  it('corta por palabra completa, no a mitad de palabra', () => {
+    expect(sanitizeFilenamePart('Analista de Datos y Business Intelligence', 25)).toBe(
+      'Analista_de_Datos_y',
+    );
+  });
+
   it('mantiene los apellidos compuestos del nombre completo', () => {
     const input = {
       fullName: 'Pedro Espejo Pariani',

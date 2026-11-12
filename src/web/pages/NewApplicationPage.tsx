@@ -349,6 +349,58 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
                 </div>
               </section>
 
+              <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold">¿Te sirve este CV?</h2>
+                    <p className="mt-1 text-sm text-emerald-900">
+                      Guardalo en el tracker: queda como borrador, se generan los PDFs y podés
+                      seguir su estado.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void saveApplication()}
+                    disabled={saving || saved !== null}
+                    className="rounded-lg bg-emerald-800 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                  >
+                    {saving
+                      ? 'Guardando…'
+                      : saved !== null
+                        ? 'Guardada ✓'
+                        : 'Guardar en el tracker'}
+                  </button>
+                </div>
+
+                {saved === null ? null : (
+                  <div className="mt-5 rounded-xl border border-emerald-200 bg-white p-4 text-sm text-emerald-900">
+                    <p className="font-medium">Postulación #{saved.id} guardada como borrador.</p>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      <a
+                        href={`/api/applications/${saved.id}/files/cv`}
+                        download
+                        className="rounded-lg bg-emerald-800 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-900"
+                      >
+                        Descargar CV
+                      </a>
+                      <a
+                        href={`/api/applications/${saved.id}/files/letter`}
+                        download
+                        className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100"
+                      >
+                        Descargar carta
+                      </a>
+                      <Link
+                        to="/tracker"
+                        className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100"
+                      >
+                        Ir al tracker
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </section>
+
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold">Vista previa de la carta</h2>
                 <div className="mt-5 rounded-xl bg-slate-50 p-5 text-sm leading-7 text-slate-700">
@@ -401,53 +453,6 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
                 >
                   Validar edición
                 </button>
-              </section>
-
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-semibold">Guardar postulación</h2>
-                    <p className="mt-1 text-sm text-slate-600">
-                      Se guarda como borrador, se generan los PDFs y queda lista para el tracker.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void saveApplication()}
-                    disabled={saving || saved !== null}
-                    className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                  >
-                    {saving ? 'Guardando…' : 'Guardar y generar PDFs'}
-                  </button>
-                </div>
-
-                {saved === null ? null : (
-                  <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-                    <p className="font-medium">Postulación #{saved.id} guardada como borrador.</p>
-                    <div className="mt-3 flex flex-wrap gap-3">
-                      <a
-                        href={`/api/applications/${saved.id}/files/cv`}
-                        download
-                        className="rounded-lg bg-emerald-800 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-900"
-                      >
-                        Descargar CV
-                      </a>
-                      <a
-                        href={`/api/applications/${saved.id}/files/letter`}
-                        download
-                        className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100"
-                      >
-                        Descargar carta
-                      </a>
-                      <Link
-                        to="/tracker"
-                        className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100"
-                      >
-                        Ir al tracker
-                      </Link>
-                    </div>
-                  </div>
-                )}
               </section>
             </>
           ) : null}

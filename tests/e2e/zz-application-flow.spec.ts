@@ -57,7 +57,7 @@ test('flujo de postulación: previsualizar, editar, validar y descargar', async 
   await page.getByRole('button', { name: 'Validar edición' }).click();
   await expect(page.getByText(/Edición validada\. Match recalculado: \d+%/)).toBeVisible();
 
-  await page.getByRole('button', { name: 'Guardar y generar PDFs' }).click();
+  await page.getByRole('button', { name: 'Guardar en el tracker' }).click();
   await expect(page.getByText(/Postulación #\d+ guardada como borrador\./)).toBeVisible();
 
   const cvDownload = page.waitForEvent('download');
