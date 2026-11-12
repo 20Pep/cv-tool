@@ -75,7 +75,8 @@ adaptador descubre el servicio local en este orden:
 
 1. **Inicio**: seguí los tres pasos. Si todavía no conectaste una IA, el botón
    principal te lleva a **Ajustes**. Si no hay perfil, te lleva a **Perfil**.
-   Cuando todo está listo, el botón dice **Adaptar para la oferta**.
+   Cuando todo está listo, el inicio es directamente la caja para pegar la
+   oferta: no hay un click extra.
 2. **Perfil**: subí tu CV (PDF, DOCX, TXT o MD), generá el perfil con IA,
    revisalo y guardalo. Podés agregar un **esquema de carta** opcional.
 3. **Nueva**: pegá la oferta completa y todo el contexto en una sola caja.

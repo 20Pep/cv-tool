@@ -8,6 +8,7 @@ import {
   ProvidersResponse as ProvidersResponseSchema,
 } from '../../shared/schemas';
 import { apiGet } from '../lib/api';
+import { NewApplicationPage } from './NewApplicationPage';
 
 type Stage = 'loading' | 'provider' | 'profile' | 'ready' | 'error';
 
@@ -72,6 +73,10 @@ export function DashboardPage() {
       description: 'Pegá la oferta completa en una sola caja y generá tu CV y tu carta.',
     },
   }[stage === 'ready' ? 'ready' : stage === 'profile' ? 'profile' : 'provider'];
+
+  if (stage === 'ready' && profile !== null) {
+    return <NewApplicationPage initialProfile={profile} />;
+  }
 
   const steps = [
     {

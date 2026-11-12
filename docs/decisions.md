@@ -610,6 +610,19 @@ formatos sigue pendiente.
   `styles.css` para fondos, textos, bordes, inputs, badges y botones.
 - No se agregó una librería de temas ni un proveedor de contexto.
 
+### D-032 — Inicio directo en el compositor
+
+Cuando OpenCode está disponible y el perfil está guardado, el inicio no muestra
+el camino de tres pasos: renderiza directamente el compositor de oferta
+(`NewApplicationPage` con el perfil inicial inyectado). La persona puede pegar
+el texto sin hacer un click adicional.
+
+Si falta la IA o el perfil, se mantiene el camino guiado. El compositor solo
+volverá a pedir perfil si se entra por `/postulaciones/nueva` sin perfil.
+
+El toggle de tema pasó de texto a un botón circular con ícono de sol/luna en el
+extremo derecho del encabezado, con `aria-label` y `title` para accesibilidad.
+
 ## [VERIFICAR] de PROJECT.md §10.2
 
 | Punto | Resultado |

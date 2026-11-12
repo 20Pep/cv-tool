@@ -12,13 +12,13 @@ import {
 } from '../../shared/schemas';
 import { apiGet, apiSend } from '../lib/api';
 
-export function NewApplicationPage() {
-  const [profile, setProfile] = useState<MasterProfile | null>(null);
+export function NewApplicationPage({ initialProfile }: { initialProfile?: MasterProfile } = {}) {
+  const [profile, setProfile] = useState<MasterProfile | null>(initialProfile ?? null);
   const [offerText, setOfferText] = useState('');
   const [preview, setPreview] = useState<PreviewApplicationResponse | null>(null);
   const [cvJson, setCvJson] = useState('');
   const [letterJson, setLetterJson] = useState('');
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingProfile, setLoadingProfile] = useState(initialProfile === undefined);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<ApplicationInfo | null>(null);
@@ -40,8 +40,10 @@ export function NewApplicationPage() {
   }, []);
 
   useEffect(() => {
-    void loadProfile();
-  }, [loadProfile]);
+    if (initialProfile === undefined) {
+      void loadProfile();
+    }
+  }, [initialProfile, loadProfile]);
 
   const generate = async () => {
     setGenerating(true);
@@ -134,12 +136,14 @@ export function NewApplicationPage() {
     <div>
       <header className="mb-8">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-          Nueva postulación
+          {initialProfile === undefined ? 'Nueva postulación' : 'Adaptar para la oferta'}
         </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Adaptá tu CV y tu carta</h1>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+          {initialProfile === undefined ? 'Adaptá tu CV y tu carta' : 'Pegá la oferta'}
+        </h1>
         <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-          Pegá la oferta. cv-tool genera un CV y una carta usando solo tu perfil, calcula las
-          keywords cubiertas y te deja revisar todo antes de guardar.
+          Pegá la oferta completa en la caja de abajo. cv-tool usa tu perfil para generar el CV y la
+          carta, calcula las keywords y te deja revisar todo antes de guardar.
         </p>
       </header>
 

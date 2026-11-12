@@ -333,13 +333,14 @@ npm run dev
 - [x] Inicio guiado por estado:
   - sin OpenCode disponible → **Conectar mi IA**;
   - sin perfil → **Cargar mi perfil**;
-  - con perfil → **Adaptar para la oferta**.
+  - con perfil → inicio directo en la caja **Adaptar para la oferta**, sin click extra.
 - [x] Nueva postulación con **una sola caja de texto** para oferta y contexto.
   Empresa y puesto se detectan del texto; no se exigen campos aparte.
 - [x] Se quitó el borrador de carta de la pantalla de nueva postulación.
 - [x] El perfil acepta un **esquema de carta** opcional que se usa como guía de
   estructura y tono.
-- [x] Botón de **modo oscuro/claro** con preferencia persistida.
+- [x] Ícono de **modo oscuro/claro** en el extremo del encabezado, con
+  preferencia persistida.
 - [x] Tests: 111 unitarios/integración y E2E actualizado con el flujo de inicio
   y el cambio de tema.
 

@@ -37,7 +37,8 @@ test('flujo base de la interfaz', async ({ page }) => {
   });
   expect(saved.ok()).toBe(true);
   await page.reload();
-  await expect(page.getByRole('link', { name: 'Adaptar para la oferta' }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Pegá la oferta' })).toBeVisible();
+  await expect(page.getByPlaceholder(/Pegá acá el texto completo de la oferta/)).toBeVisible();
 
   await page.getByRole('link', { name: 'Tracker', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Tracker' })).toBeVisible();
