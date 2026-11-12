@@ -1,13 +1,30 @@
 {
   "name": "cv-tool",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Adapta CVs y cartas de presentación a ofertas de trabajo y lleva un tracker de postulaciones.",
   "license": "MIT",
-  "private": true,
+  "author": "Pedro Espejo Pariani",
   "type": "module",
+  "keywords": [
+    "cv",
+    "resume",
+    "cover-letter",
+    "ats",
+    "job-tracker",
+    "opencode",
+    "local-first"
+  ],
   "bin": {
     "cv-tool": "bin/cv-tool.js"
   },
+  "files": [
+    "bin",
+    "dist",
+    "migrations",
+    "prompts",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=24"
   },
@@ -17,8 +34,11 @@
     "start": "node bin/cv-tool.js",
     "prototype": "tsx scripts/prototype.ts",
     "test": "vitest run",
-    "lint": "biome check src scripts tests bin vite.config.ts vitest.config.ts package.json tsconfig.json tsconfig.build.json biome.json",
-    "typecheck": "tsc --noEmit"
+    "test:e2e": "npm run build && playwright test",
+    "check": "npm run typecheck && npm run lint && npm test",
+    "lint": "biome check src scripts tests bin vite.config.ts vitest.config.ts playwright.config.ts package.json tsconfig.json tsconfig.build.json biome.json",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
@@ -39,6 +59,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/vite": "^4.3.5",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^24.19.2",

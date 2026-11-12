@@ -485,6 +485,7 @@ Cada paso termina con algo ejecutable y verificable. No avances al siguiente sin
    *Resultado (2026-11-12):* completado. Ciclo verificado, historial de 4 entradas, filtros y Excel generado. Ver `docs/decisions.md`.
 8. **Pulido y publicación.** README de instalación (incluye cómo instalar y levantar OpenCode), manejo de errores amigable, estados de carga, datos de ejemplo, `package.json` listo para publicar en npm.
    *Listo cuando:* otra persona, desde cero, puede correr `npx cv-tool` siguiendo solo el README.
+   *Resultado (2026-11-12):* README, LICENSE, `package.json` 0.1.0, `npm pack` e instalación desde tarball verificados; E2E con Playwright y prueba con CV real. Falta publicar en npm y probar `npx` desde el registro.
 
 ## 15. Convenciones
 
@@ -499,13 +500,13 @@ Cada paso termina con algo ejecutable y verificable. No avances al siguiente sin
 
 ## 16. Criterios de aceptación del MVP
 
-- [ ] Funciona 100% en local, sin ningún backend propio en la nube.
-- [ ] Con OpenCode conectado, de una oferta pegada se obtiene CV + carta en PDF y una fila en el tracker.
-- [ ] El CV no contiene skills, cifras ni logros ausentes del perfil (validado por código).
-- [ ] El PDF es de una columna, con texto seleccionable y nombre `Nombre_Apellido_Puesto_Empresa.pdf`.
-- [ ] El match % y las keywords faltantes se calculan sin IA y se muestran en la vista previa.
-- [ ] El tracker muestra estado, días transcurridos e historial, y exporta a Excel/CSV.
-- [ ] El servidor rechaza requests con `Host`/`Origin` inválidos o sin sesión.
-- [ ] Una oferta con prompt injection no produce acciones ni contenido fuera del perfil.
-- [ ] Sin OpenCode disponible, la app sigue funcionando (perfil, tracker) y explica cómo conectarlo.
-- [ ] `npx cv-tool` funciona desde cero siguiendo el README, y los datos quedan fuera del paquete.
+- [x] Funciona 100% en local, sin ningún backend propio en la nube.
+- [x] Con OpenCode conectado, de una oferta pegada se obtiene CV + carta en PDF y una fila en el tracker. *(Verificado por partes: generación real, creación de postulación y tracker.)*
+- [x] El CV no contiene skills, cifras ni logros ausentes del perfil (validado por código).
+- [x] El PDF es de una columna, con texto seleccionable y nombre `Nombre_Apellido_Puesto_Empresa.pdf`.
+- [x] El match % y las keywords faltantes se calculan sin IA y se muestran en la vista previa.
+- [x] El tracker muestra estado, días transcurridos e historial, y exporta a Excel/CSV.
+- [x] El servidor rechaza requests con `Host`/`Origin` inválidos o sin sesión.
+- [x] Una oferta con prompt injection no produce acciones ni contenido fuera del perfil.
+- [ ] Sin OpenCode disponible, la app sigue funcionando (perfil, tracker) y explica cómo conectarlo. *(La UI muestra el proveedor no disponible, pero falta una prueba dedicada con OpenCode apagado.)*
+- [ ] `npx cv-tool` funciona desde cero siguiendo el README, y los datos quedan fuera del paquete. *(Instalación desde tarball verificada; falta publicar en npm y probar `npx` desde el registro.)*

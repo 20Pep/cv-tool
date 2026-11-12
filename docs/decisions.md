@@ -521,6 +521,57 @@ herramientas, tablas, columnas, PDFs escaneados).
 - Sin paginación ni reglas de transición.
 - La fecha de envío no se limpia si se vuelve a un estado anterior.
 
+## 2026-11-12 — Paso 8: empaquetado y pruebas finales
+
+### D-027 — Paquete npm
+
+**Decisión:**
+
+- Versión `0.1.0`, sin `private`.
+- `files`: `bin`, `dist`, `migrations`, `prompts`, `README.md`, `LICENSE`.
+- `prepack`: `npm run build` para no publicar un `dist` viejo.
+- `check`: typecheck + lint + test.
+- `test:e2e`: build + Playwright.
+
+**Verificación:**
+
+- `npm pack`: tarball de 195 KB, 77 archivos, 728 KB descomprimido.
+- Instalación del tarball en una carpeta limpia: 355 paquetes.
+- La app arrancó desde `node_modules/cv-tool`, `/api/health` OK, `/` 200 y
+  `/api/providers` con proveedor disponible.
+- El nombre `cv-tool` no está publicado en npm (404). Falta `npm publish`.
+
+### D-028 — Playwright para E2E
+
+Se agregó `@playwright/test` y Chromium como **dev dependency**, justificado
+porque las pruebas de API no detectan errores de renderizado o navegación.
+`playwright.config.ts` levanta `node bin/cv-tool.js` en el puerto 3200 con
+tokens de prueba y `.e2e-data` (ignorado).
+
+Test: inicio → Ajustes → Perfil → subir `fixtures/documents/ana-perez-cv.txt`
+→ Tracker. Pasa en Chromium.
+
+### D-029 — Prueba con un CV real
+
+Se usó un CV PDF local del usuario, sin copiarlo al repositorio ni imprimir su
+contenido.
+
+- Extracción: 2.349 caracteres.
+- Perfil generado con OpenCode Go: 1 experiencia, 13 skills, 1 estudio, 3
+  proyectos.
+- El directorio de datos temporal se eliminó al terminar.
+
+Esto valida que la ingesta funciona con un CV real, aunque la variedad de
+formatos sigue pendiente.
+
+**Riesgos de publicación:**
+
+- `npm audit`: 2 vulnerabilidades moderadas en dependencias transitivas de
+  `exceljs`; no se aplicó una corrección forzada.
+- No se probó macOS/Linux.
+- `better-sqlite3` depende de binarios de plataforma.
+- El nombre del paquete y el acceso a npm deben confirmarse al publicar.
+
 ## [VERIFICAR] de PROJECT.md §10.2
 
 | Punto | Resultado |

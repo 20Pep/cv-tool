@@ -297,8 +297,55 @@ npm run dev
 - `exceljs` trae dependencias transitivas antiguas con avisos de npm audit, pero
   está dentro del stack aprobado. No afecta la ejecución local.
 
-**Próximo paso:** Paso 8 — pulido, README y publicación.
+## Paso 8 — Pulido y publicación
 
-## Pasos siguientes
+**Estado:** completado (2026-11-12).
 
-- [ ] Paso 8 — Pulido y publicación.
+- [x] `README.md` con instalación, configuración de OpenCode, uso, privacidad,
+      seguridad, comandos, problemas comunes y límites.
+- [x] `LICENSE` MIT.
+- [x] `package.json` versión `0.1.0`, sin `private`, con `files`, `prepack`,
+      `check` y `test:e2e`.
+- [x] `npm pack` genera un tarball de 195 KB con 77 archivos: `bin`, `dist`,
+      `migrations`, `prompts`, README y LICENSE.
+- [x] Instalación desde el tarball en una carpeta limpia: 355 paquetes, app
+      arranca, `/api/health` OK, `/` 200 y proveedor disponible.
+- [x] Playwright instalado como dev dependency y Chromium descargado.
+- [x] Test E2E de UI: inicio, Ajustes, Perfil, subida de un TXT y Tracker.
+- [x] Prueba con un CV real: 2.349 caracteres extraídos y perfil válido
+      generado con OpenCode Go. No se registró ni commiteó el contenido.
+- [x] `npm run check` y `npm run test:e2e` pasan.
+
+**Observaciones:**
+
+- El paquete **no está publicado en npm**. `npx cv-tool` desde el registro
+  queda pendiente de `npm publish` y de confirmar la disponibilidad del nombre.
+- `npm audit` reporta 2 vulnerabilidades moderadas en dependencias transitivas
+  de `exceljs`. No se aplicó `audit fix --force` para no romper el stack.
+- No se probó la instalación en macOS/Linux; `better-sqlite3` usa binarios
+  precompilados y conviene una matriz antes de anunciar soporte universal.
+- El README advierte que la inferencia con OpenCode Go no es local.
+- La prueba E2E no genera contenido con IA; cubre navegación y subida. Las
+  pruebas reales de generación se hicieron por API.
+
+## Estado del MVP
+
+Los pasos 0 a 8 están completados. El flujo principal quedó verificado por
+partes:
+
+1. OpenCode Go conectado y modelos listados.
+2. Perfil generado desde un CV real y persistido.
+3. CV y carta generados y validados.
+4. PDFs generados, descargados y con texto extraíble.
+5. Postulación guardada, estados e historial, Excel exportado.
+6. Paquete instalable desde tarball.
+
+Pendiente antes de un lanzamiento público:
+
+- Publicar en npm y probar `npx cv-tool` desde el registro.
+- Revisar `npm audit` y dependencias transitivas de `exceljs`.
+- Probar instalación en macOS y Linux.
+- Definir política para afirmaciones sin cifras en resumen/carta.
+- Mejorar el editor JSON a formulario y traducir skills en ofertas en inglés.
+- Verificar concurrencia y una instancia dedicada de OpenCode.
+

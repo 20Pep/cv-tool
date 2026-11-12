@@ -1,6 +1,9 @@
 node_modules/
 dist/
 coverage/
+.e2e-data/
+playwright-report/
+test-results/
 
 data/
 outputs/
