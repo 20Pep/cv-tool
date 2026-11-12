@@ -471,6 +471,7 @@ Cada paso termina con algo ejecutable y verificable. No avances al siguiente sin
    *Resultado (2026-11-12):* completado con un CV ficticio realista; perfil válido, guardado como versión 1 y recuperado tras reiniciar. El editor es JSON por ahora. Ver `docs/decisions.md`.
 4. **Keywords por código.** `keywords.ts` con tests.
    *Listo cuando:* los tests pasan con al menos 5 ofertas realistas (ficticias o anonimizadas, sin datos personales) en español e inglés.
+   *Resultado (2026-11-12):* completado. Cinco ofertas de prueba, extracción con n-gramas, stopwords y match %; tests de keywords y match. Ver `docs/decisions.md`.
 5. **Generación.** `tailor.ts` + `validate.ts` con reintentos y vista previa.
    *Listo cuando:* una oferta de prueba produce CV y carta válidos, y la oferta con prompt injection **no** logra colar contenido inexistente ni ejecutar acciones.
 6. **Render y archivos.** Plantilla ATS, PDFs, nombre de archivo.

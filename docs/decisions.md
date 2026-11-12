@@ -373,6 +373,37 @@ test que extrae su texto con `mammoth`. También se prueba PDF generado, TXT y
 validación de firmas. **Pendiente:** variedad de CVs reales (distintas
 herramientas, tablas, columnas, PDFs escaneados).
 
+## 2026-11-12 — Paso 4: keywords y match % por código
+
+### D-023 — Extracción determinística de keywords
+
+**Decisión:**
+
+- Normalización: NFD, sin acentos, minúsculas, solo letras/números y `+`/`#`.
+- Stopwords en español e inglés + lista de relleno genérico configurable en el
+  código.
+- Candidatos por línea, con n-gramas de 1 a 3 palabras. Las frases no cruzan
+  líneas ni encabezados.
+- Se priorizan líneas de requisitos/responsabilidades, términos técnicos y
+  frecuencia.
+- Las frases de dos o tres palabras necesitan frecuencia ≥ 3 o estar en la lista
+  de términos técnicos; los unigramas se conservan.
+- Se eliminan unigramas que ya forman parte de una frase técnica seleccionada
+  (`power bi` evita `power` y `bi`).
+- `matchKeywords` compara frases normalizadas con límites de palabra y devuelve
+  `keywords`, `matched`, `missing` y `matchPct` (0–100).
+- Se agregaron tres ofertas ficticias para tener cinco casos de prueba en
+  español e inglés.
+
+**Límites conocidos:**
+
+- Sin stemming/lematización ni sinónimos: “gestión” y “gestioné” no se
+  unifican.
+- Sin traducción automática: el CV debe estar en el idioma de la oferta.
+- La lista de términos técnicos y relleno es heurística y requiere ajustes con
+  ofertas reales.
+- El match % es una señal, no una decisión: la persona revisa la vista previa.
+
 ## [VERIFICAR] de PROJECT.md §10.2
 
 | Punto | Resultado |

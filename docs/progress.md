@@ -182,9 +182,35 @@ npm run dev
 
 **Próximo paso:** Paso 4 — keywords y match % por código.
 
+## Paso 4 — Keywords por código
+
+**Estado:** completado (2026-11-12).
+
+- [x] `keywords.ts` con normalización sin acentos, tokenización, stopwords en
+      español e inglés y n-gramas de 1 a 3 palabras.
+- [x] Priorización de términos técnicos, frases repetidas y líneas de
+      requisitos/responsabilidades.
+- [x] Filtro de relleno genérico, empresas, ubicaciones y encabezados.
+- [x] `matchKeywords` y `analyzeOffer`: cubiertas, faltantes y match %.
+- [x] Cinco ofertas de prueba en español e inglés: analista de datos ES/EN,
+      frontend ES, backend EN y marketing ES.
+- [x] Tests de keywords y match: 9 tests nuevos.
+
+**Observaciones:**
+
+- No hay stemming ni lematización: “gestioné” y “gestión” no se unifican. La
+  comparación es por token/frase normalizada.
+- No hay sinónimos ni traducción entre idiomas. El CV final debe estar en el
+  idioma de la oferta para que el match sea justo.
+- El match % se devuelve en escala 0–100.
+- Las keywords del modelo (`keywordsUsed`/`keywordsMissing`) se van a
+  reemplazar por las calculadas en código en el Paso 5.
+
+**Próximo paso:** Paso 5 — generación de CV y carta con reintentos y vista previa.
+
 ## Pasos siguientes
 
-- [ ] Paso 4 — Keywords por código.
+- [ ] Paso 5 — Generación y validación con reintentos.
 - [ ] Paso 5 — Generación y validación con reintentos.
 - [ ] Paso 6 — Render y archivos.
 - [ ] Paso 7 — Tracker.
