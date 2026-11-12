@@ -6,7 +6,6 @@ export type PdfKind = 'cv' | 'letter';
 export interface FilenameInput {
   fullName: string;
   position: string;
-  company: string;
 }
 
 const RESERVED_WINDOWS_NAME = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
@@ -26,7 +25,7 @@ export function buildPdfFilename(input: FilenameInput, kind: PdfKind): string {
   // Nombre completo: no se pierden apellidos compuestos ("Pedro Espejo Pariani"
   // debe quedar Pedro_Espejo_Pariani, no Pedro_Pariani).
   const name = sanitizeFilenamePart(input.fullName, 60);
-  const pieces = [name, input.position, input.company]
+  const pieces = [name, input.position]
     .map((part) => sanitizeFilenamePart(part))
     .filter((part) => part.length > 0);
 
@@ -44,7 +43,7 @@ export function buildPdfFilename(input: FilenameInput, kind: PdfKind): string {
     base = `CV_${base}`;
   }
 
-  return `${base}${kind === 'letter' ? '_Carta' : ''}.pdf`;
+  return `${base}_${kind === 'letter' ? 'Carta' : 'CV'}.pdf`;
 }
 
 export function uniqueFilename(directory: string, filename: string): string {

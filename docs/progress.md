@@ -5,6 +5,9 @@
 - [x] **Nombre del PDF con el nombre completo**: antes tomaba solo primer
   nombre + primer apellido (`Pedro_Pariani`); ahora usa todas las partes
   (`Pedro_Espejo_Pariani_Puesto_Empresa.pdf`).
+- [x] **Formato del archivo `Nombre_Rol_CV.pdf`**: sin nombre de empresa.
+  La carta es `Nombre_Rol_Carta.pdf`. La empresa sigue en el tracker y en el
+  PDF de la carta, solo sale del nombre de archivo.
 - [x] **El puesto detectado se usa en el CV**: `detectOfferMeta` corre antes de
   generar y el puesto objetivo viaja al prompt como `headline` obligatorio.
 - [x] **El CV fuente es guía, no lista cerrada** (prompt `cv.system.md`): se

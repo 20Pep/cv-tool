@@ -630,8 +630,10 @@ extremo derecho del encabezado, con `aria-label` y `title` para accesibilidad.
 **Nombre del PDF:** `buildPdfFilename` tomaba primer nombre + último apellido.
 Con nombres con dos apellidos ("Pedro Espejo Pariani") producía
 `Pedro_Pariani_...`, perdiendo el primer apellido. Ahora usa el nombre
-completo sanitizado (`Pedro_Espejo_Pariani_Puesto_Empresa.pdf`), con el mismo
-límite de largo y deduplicación previa.
+completo sanitizado. A pedido de la persona, el formato de archivo es
+`Nombre_Rol_CV.pdf` / `Nombre_Rol_Carta.pdf`: **sin empresa en el nombre**.
+La empresa sigue visible en el tracker y en el membrete de la carta; solo se
+saca del nombre de archivo.
 
 **Puesto objetivo en el CV:** el punto de detectar el puesto es usarlo. En
 `preview`, `detectOfferMeta` corre **antes** de generar el CV y el puesto

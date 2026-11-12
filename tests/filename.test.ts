@@ -24,39 +24,30 @@ describe('filename', () => {
     const input = {
       fullName: 'Pedro Espejo Pariani',
       position: 'Desarrollador Backend',
-      company: 'Andes Market',
     };
 
-    expect(buildPdfFilename(input, 'cv')).toBe(
-      'Pedro_Espejo_Pariani_Desarrollador_Backend_Andes_Market.pdf',
-    );
+    expect(buildPdfFilename(input, 'cv')).toBe('Pedro_Espejo_Pariani_Desarrollador_Backend_CV.pdf');
   });
 
-  it('arma el nombre del CV y de la carta', () => {
+  it('usa nombre y rol, sin empresa, con sufijo del tipo', () => {
     const input = {
       fullName: 'Ana Pérez',
       position: 'Analista de Datos',
-      company: 'Andes Market',
     };
 
-    expect(buildPdfFilename(input, 'cv')).toBe('Ana_Perez_Analista_de_Datos_Andes_Market.pdf');
-    expect(buildPdfFilename(input, 'letter')).toBe(
-      'Ana_Perez_Analista_de_Datos_Andes_Market_Carta.pdf',
-    );
+    expect(buildPdfFilename(input, 'cv')).toBe('Ana_Perez_Analista_de_Datos_CV.pdf');
+    expect(buildPdfFilename(input, 'letter')).toBe('Ana_Perez_Analista_de_Datos_Carta.pdf');
   });
 
   it('evita nombres reservados de Windows', () => {
-    expect(buildPdfFilename({ fullName: 'CON', position: '', company: '' }, 'cv')).toBe(
-      'CV_CON.pdf',
-    );
+    expect(buildPdfFilename({ fullName: 'CON', position: '' }, 'cv')).toBe('CV_CON_CV.pdf');
   });
 
   it('limita el largo del nombre', () => {
     const filename = buildPdfFilename(
       {
         fullName: 'Ana Pérez',
-        position: 'Analista de Datos con un puesto extremadamente largo',
-        company: 'Una empresa con un nombre larguísimo',
+        position: 'Analista de Datos con un puesto extremadamente largo y detallado',
       },
       'letter',
     );

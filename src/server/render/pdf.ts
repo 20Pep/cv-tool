@@ -51,11 +51,11 @@ export async function renderApplicationPdfs(
   const fullName = input.profile.basics.fullName;
   const cvFilename = uniqueFilename(
     input.outputsDir,
-    buildPdfFilename({ fullName, position: input.position, company: input.company }, 'cv'),
+    buildPdfFilename({ fullName, position: input.position }, 'cv'),
   );
   const letterFilename = uniqueFilename(
     input.outputsDir,
-    buildPdfFilename({ fullName, position: input.position, company: input.company }, 'letter'),
+    buildPdfFilename({ fullName, position: input.position }, 'letter'),
   );
 
   const [cvBuffer, letterBuffer] = await Promise.all([
