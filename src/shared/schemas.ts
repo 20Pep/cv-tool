@@ -287,3 +287,53 @@ export const PreviewApplicationResponse = z.object({
 });
 
 export type PreviewApplicationResponse = z.infer<typeof PreviewApplicationResponse>;
+
+export const ApplicationStatus = z.enum([
+  'draft',
+  'sent',
+  'in_process',
+  'interview',
+  'offer',
+  'hired',
+  'rejected',
+  'withdrawn',
+]);
+
+export type ApplicationStatus = z.infer<typeof ApplicationStatus>;
+
+export const CreateApplicationRequest = z
+  .object({
+    company: z.string().min(1, 'Falta la empresa.'),
+    position: z.string().min(1, 'Falta el puesto.'),
+    url: z.string().optional(),
+    jobText: z.string().min(50, 'La oferta es demasiado corta.'),
+    tailoredCv: TailoredCV,
+    coverLetter: CoverLetter,
+  })
+  .strict();
+
+export type CreateApplicationRequest = z.infer<typeof CreateApplicationRequest>;
+
+export const ApplicationInfo = z.object({
+  id: z.number().int().positive(),
+  company: z.string(),
+  position: z.string(),
+  url: z.string().nullable(),
+  status: ApplicationStatus,
+  sentAt: z.string().nullable(),
+  matchPct: z.number().nullable(),
+  missingKeywords: z.array(z.string()),
+  cvPath: z.string().nullable(),
+  letterPath: z.string().nullable(),
+  notes: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type ApplicationInfo = z.infer<typeof ApplicationInfo>;
+
+export const ApplicationResponse = z.object({
+  application: ApplicationInfo,
+});
+
+export type ApplicationResponse = z.infer<typeof ApplicationResponse>;

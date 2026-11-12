@@ -444,6 +444,47 @@ herramientas, tablas, columnas, PDFs escaneados).
 - Las skills no se traducen; en ofertas en inglés pueden quedar nombres en
   español.
 
+## 2026-11-12 — Paso 6: PDFs y archivos
+
+### D-025 — Plantillas, nombres y guardado
+
+**Decisión:**
+
+- `CvDocument` usa una sola columna, Helvetica, texto real, sin tablas ni
+  imágenes. Las secciones se localizan con `detectLanguage` (es/en).
+- `LetterDocument` agrega nombre, contacto, fecha, asunto, saludo, párrafos y
+  cierre.
+- Nombre: `Nombre_Apellido_Puesto_Empresa.pdf` y `..._Carta.pdf`.
+  - Se quitan acentos y caracteres especiales, se usan guiones bajos.
+  - Máximo 100 caracteres.
+  - Se evitan nombres reservados de Windows.
+  - Las colisiones se resuelven con `_2`, `_3`, etc.
+- `POST /api/applications`:
+  - valida de nuevo el CV y la carta contra el perfil;
+  - recalcula keywords y match por código;
+  - renderiza ambos PDFs en `outputs/`;
+  - guarda la fila en `applications` como `draft` y el historial inicial;
+  - si falla la inserción, borra los PDFs generados.
+- Las rutas en SQLite son solo el nombre del archivo; la descarga resuelve
+  dentro de `outputs/` y rechaza cualquier ruta fuera de esa carpeta.
+- `GET /api/applications/:id/files/cv|letter` sirve el PDF con
+  `Content-Disposition: attachment`.
+
+**Verificación real:**
+
+- Postulación #1: `draft`, match 69%.
+- Archivos: `Ana_Perez_Analista_de_Datos_Andes_Market.pdf` y
+  `..._Carta.pdf`.
+- Descarga con `application/pdf` y `Content-Disposition` correcto.
+- Texto extraído del PDF: nombre, skills y bullets presentes.
+- `GET /api/applications` devuelve 1 postulación.
+
+**Límites:**
+
+- No se fuerza que el CV entre en una página.
+- Las skills no se traducen.
+- La fecha de la carta depende del día de generación.
+
 ## [VERIFICAR] de PROJECT.md §10.2
 
 | Punto | Resultado |

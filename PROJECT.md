@@ -477,6 +477,9 @@ Cada paso termina con algo ejecutable y verificable. No avances al siguiente sin
    *Resultado (2026-11-12):* completado. Oferta ES con 69% de match; carta y CV válidos; la inyección no agregó skills, cifras ni acciones. Ver `docs/decisions.md`.
 6. **Render y archivos.** Plantilla ATS, PDFs, nombre de archivo.
    *Listo cuando:* el texto extraído del PDF generado coincide con el contenido esperado y el nombre sigue el formato.
+   *Resultado (2026-11-12):* completado. CV/carta en PDF, nombres
+   `Nombre_Apellido_Puesto_Empresa[_Carta].pdf`, descarga y texto extraído
+   verificado. Ver `docs/decisions.md`.
 7. **Tracker.** CRUD, estados, historial, días transcurridos, filtros, exportar a Excel.
    *Listo cuando:* se recorre el ciclo draft → sent → interview → offer y se exporta el resultado.
 8. **Pulido y publicación.** README de instalación (incluye cómo instalar y levantar OpenCode), manejo de errores amigable, estados de carga, datos de ejemplo, `package.json` listo para publicar en npm.

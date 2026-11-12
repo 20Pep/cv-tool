@@ -238,10 +238,40 @@ npm run dev
 - No se ejecuta nada del texto de la oferta: el adaptador usa `generate/text`
   sin herramientas.
 
-**Próximo paso:** Paso 6 — plantilla ATS, PDFs y nombre de archivo.
+## Paso 6 — Plantilla ATS, PDFs y archivos
+
+**Estado:** completado (2026-11-12).
+
+- [x] `CvDocument.tsx` en una columna, sin tablas ni imágenes, con secciones
+      localizadas según el idioma de la oferta.
+- [x] `LetterDocument.tsx` con encabezado, fecha, asunto, saludo, párrafos y
+      cierre.
+- [x] `filename.ts` con formato
+      `Nombre_Apellido_Puesto_Empresa[_Carta].pdf`, sin acentos, máximo 100
+      caracteres y resolución de colisiones.
+- [x] `renderApplicationPdfs` escribe ambos PDFs en `outputs/`.
+- [x] `POST /api/applications` valida, recalcula keywords/match, renderiza los
+      PDFs y guarda la postulación como `draft` con historial.
+- [x] `GET /api/applications/:id/files/cv|letter` descarga los PDFs.
+- [x] Botón **Guardar y generar PDFs** en la vista previa, con descargas.
+- [x] Tests de nombre, plantillas, extracción de texto y creación/descarga:
+      100 tests pasan.
+- [x] Prueba real: postulación #1 creada, match 69%, PDFs de 3,5 KB y 3,3 KB,
+      texto extraído con nombre, skills y bullets.
+
+**Observaciones:**
+
+- La plantilla usa Helvetica y no incrusta fuentes externas.
+- La carta agrega la fecha actual; el CV no incluye foto ni íconos.
+- Los PDFs se guardan con el nombre final en `outputs/` y las rutas relativas
+  en SQLite.
+- Las skills siguen sin traducirse; en ofertas en inglés puede quedar alguna
+  en español.
+- No hay validación de “una página” para CVs largos.
+
+**Próximo paso:** Paso 7 — tracker, estados, historial y exportación.
 
 ## Pasos siguientes
 
-- [ ] Paso 6 — Render y archivos.
 - [ ] Paso 7 — Tracker.
 - [ ] Paso 8 — Pulido y publicación.

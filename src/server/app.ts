@@ -86,7 +86,7 @@ export async function buildApp(
   registerProviderRoutes(app, db, providerService);
   registerDocumentRoutes(app, db, config);
   registerProfileRoutes(app, db, profileBuilder);
-  registerApplicationRoutes(app, db, tailorService);
+  registerApplicationRoutes(app, db, tailorService, config);
 
   if (config.isDev) {
     app.get('/', async () => ({

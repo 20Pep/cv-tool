@@ -1,6 +1,8 @@
 import { type ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import {
+  type ApplicationInfo,
+  ApplicationResponse as ApplicationResponseSchema,
   CoverLetter as CoverLetterSchema,
   type MasterProfile,
   type PreviewApplicationResponse,
@@ -22,6 +24,8 @@ export function NewApplicationPage() {
   const [letterJson, setLetterJson] = useState('');
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<ApplicationInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -45,6 +49,7 @@ export function NewApplicationPage() {
 
   const generate = async () => {
     setGenerating(true);
+    setSaved(null);
     setError(null);
     setMessage(null);
 
@@ -100,6 +105,44 @@ export function NewApplicationPage() {
     setPreview({ ...preview, tailoredCv: cv.data, coverLetter: letter.data });
     setError(null);
     setMessage('Edición validada. Los cambios están en la vista previa.');
+  };
+
+  const saveApplication = async () => {
+    if (preview === null) {
+      return;
+    }
+
+    if (company.trim().length === 0 || position.trim().length === 0) {
+      setError('Completá la empresa y el puesto antes de guardar la postulación.');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const result = await apiSend(
+        '/api/applications',
+        'POST',
+        {
+          company: company.trim(),
+          position: position.trim(),
+          ...(url.trim().length === 0 ? {} : { url: url.trim() }),
+          jobText: offerText,
+          tailoredCv: preview.tailoredCv,
+          coverLetter: preview.coverLetter,
+        },
+        ApplicationResponseSchema,
+      );
+
+      setSaved(result.application);
+      setMessage('Postulación guardada como borrador. Los PDFs están listos.');
+    } catch (caught) {
+      setError(messageFor(caught));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const canGenerate =
@@ -344,7 +387,8 @@ export function NewApplicationPage() {
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold">Editar antes de guardar</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Por ahora la edición es JSON. El guardado y los PDFs llegan con el siguiente paso.
+                  Por ahora la edición es JSON. Usá <strong>Validar edición</strong> antes de
+                  guardar la postulación.
                 </p>
 
                 <div className="mt-4 grid gap-5 lg:grid-cols-2">
@@ -379,6 +423,58 @@ export function NewApplicationPage() {
                 >
                   Validar edición
                 </button>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold">Guardar postulación</h2>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Se guarda como borrador, se generan los PDFs y queda lista para el tracker.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void saveApplication()}
+                    disabled={
+                      saving ||
+                      saved !== null ||
+                      company.trim().length === 0 ||
+                      position.trim().length === 0
+                    }
+                    className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  >
+                    {saving ? 'Guardando…' : 'Guardar y generar PDFs'}
+                  </button>
+                </div>
+
+                {company.trim().length === 0 || position.trim().length === 0 ? (
+                  <p className="mt-3 text-xs text-amber-700">
+                    Completá empresa y puesto para guardar la postulación.
+                  </p>
+                ) : null}
+
+                {saved === null ? null : (
+                  <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                    <p className="font-medium">Postulación #{saved.id} guardada como borrador.</p>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      <a
+                        href={`/api/applications/${saved.id}/files/cv`}
+                        download
+                        className="rounded-lg bg-emerald-800 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-900"
+                      >
+                        Descargar CV
+                      </a>
+                      <a
+                        href={`/api/applications/${saved.id}/files/letter`}
+                        download
+                        className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100"
+                      >
+                        Descargar carta
+                      </a>
+                    </div>
+                  </div>
+                )}
               </section>
             </>
           ) : null}

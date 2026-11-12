@@ -238,7 +238,7 @@ function buildLetterUser(input: TailorInput): string {
   ].join('\n');
 }
 
-function buildCvTextForMatch(profile: MasterProfile, cv: TailoredCV): string {
+export function buildCvTextForMatch(profile: MasterProfile, cv: TailoredCV): string {
   const experiences = new Map(profile.experience.map((experience) => [experience.id, experience]));
   const parts: string[] = [cv.headline ?? '', cv.summary, ...cv.skills];
 
