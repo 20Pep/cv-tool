@@ -301,6 +301,78 @@ las dependencias). Se restauró la lista completa y se reinstaló. Regla para
 adelante: **toda dependencia usada debe estar en `package.json`**; no alcanza
 con que exista en `package-lock.json` o `node_modules`.
 
+## 2026-11-12 — Paso 3: ingesta y perfil maestro
+
+### D-018 — Subida y extracción de documentos
+
+**Decisión:**
+
+- `@fastify/multipart` con límites de **10 MB**, un archivo y cinco campos.
+- Extensiones permitidas: `.pdf`, `.docx`, `.txt`, `.md`.
+- Validación por firma: `%PDF-` para PDF y `PK\x03\x04` para DOCX. TXT/MD se
+  decodifican como UTF-8.
+- El nombre original se sanitiza solo para mostrarlo. El archivo se guarda con
+  `randomUUID()` y la extensión validada; nunca se usa el nombre original como
+  ruta.
+- PDF: máximo 40 páginas, extracción con `unpdf`. DOCX con `mammoth`.
+- Texto mínimo 20 caracteres y máximo 200.000. Los PDFs escaneados sin texto se
+  rechazan con un mensaje claro (no hay OCR).
+- Si la extracción o la validación falla, se borra el archivo temporario.
+
+**Pendiente:** validar la extracción con una variedad de CVs reales; el PDF
+probado fue generado con `@react-pdf/renderer` y el DOCX es un fixture mínimo.
+
+### D-019 — Generación del perfil maestro
+
+**Decisión:**
+
+- `prompts/profile.system.md` pide JSON con el esquema `MasterProfile`, sin
+  inventar y tratando los documentos como datos.
+- `buildProfile.ts` usa el modelo elegido en Ajustes y hace hasta dos intentos
+  si la respuesta no es JSON válido o no cumple Zod.
+- Los ids de experiencias, bullets y proyectos los normaliza el código
+  (`exp-1`, `exp-1-b1`, `proj-1`), no la IA.
+- Si el texto total supera 120.000 caracteres, se procesa documento por
+  documento y se fusiona. Se priorizan CVs y documentos recientes.
+- La fusión deduplica experiencias por empresa+cargo+inicio, bullets por texto
+  normalizado, skills por nombre, educación por institución+título, proyectos
+  por nombre, certificaciones e idiomas.
+- Los conflictos de datos no se marcan todavía para revisión manual.
+
+### D-020 — Persistencia y editor del perfil
+
+**Decisión:**
+
+- `GET /api/profile` devuelve `{ profile, version, updatedAt }`.
+- `PUT /api/profile` valida `MasterProfile` y hace upsert en `profile` (id=1),
+  incrementando `version`.
+- `POST /api/profile/generate` devuelve un borrador y **no guarda**. La persona
+  revisa y confirma con `PUT`.
+- La UI `/perfil` permite subir/eliminar documentos, generar el perfil y
+  editarlo.
+- Por ahora el editor es un textarea JSON con validación Zod. Es una decisión
+  deliberada para no perder campos; el formulario amigable llega en el Paso 5.
+
+### D-021 — Verificación real del Paso 3
+
+Con OpenCode 2.2.7 y OpenCode Go:
+
+- Se subió `fixtures/documents/ana-perez-cv.txt` (ficticio): 201.
+- `POST /api/profile/generate`: perfil válido con 2 experiencias, 5 skills y
+  1 estudio.
+- El contenido generado coincide con el documento: no aparecieron empresas,
+  skills ni cifras inventadas.
+- `PUT /api/profile`: versión 1.
+- Reinicio del servidor: el perfil y los documentos se recuperaron.
+- `/perfil` servido por Fastify: 200.
+
+### D-022 — Diferencias de extracción
+
+Se agregó `fixtures/documents/ana-perez-cv.docx` (DOCX mínimo ficticio) y un
+test que extrae su texto con `mammoth`. También se prueba PDF generado, TXT y
+validación de firmas. **Pendiente:** variedad de CVs reales (distintas
+herramientas, tablas, columnas, PDFs escaneados).
+
 ## [VERIFICAR] de PROJECT.md §10.2
 
 | Punto | Resultado |
@@ -319,4 +391,4 @@ con que exista en `package-lock.json` o `node_modules`.
 |---|---|
 | `better-sqlite3` con prebuilds en Node 24 | Verificado (2026-11-11): 13.x, SQLite 3.54.1, sin compilador manual. |
 | `@react-pdf/renderer` en Node 24/ESM | Verificado (2026-11-11): 4.9.0 con React 19.3.1 generó un PDF válido. |
-| `unpdf` con CVs reales variados | Verificado parcialmente: PDF generado con texto extraíble. CVs reales quedan para el Paso 3. |
+| `unpdf` con CVs reales variados | Verificado con PDF generado y con TXT/DOCX ficticios. Falta probar una variedad de CVs reales (tablas, columnas, escaneados). |

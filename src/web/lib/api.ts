@@ -37,6 +37,24 @@ export async function apiSend<T>(
   return parseResponse(response, schema);
 }
 
+export async function apiUpload<T>(path: string, body: FormData, schema: ZodType<T>): Promise<T> {
+  const response = await fetch(path, {
+    method: 'POST',
+    body,
+  });
+
+  return parseResponse(response, schema);
+}
+
+export async function apiDelete<T>(path: string, schema: ZodType<T>): Promise<T> {
+  const response = await fetch(path, {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' },
+  });
+
+  return parseResponse(response, schema);
+}
+
 async function parseResponse<T>(response: Response, schema: ZodType<T>): Promise<T> {
   if (response.status === 401) {
     throw new ApiError(

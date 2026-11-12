@@ -19,6 +19,9 @@ export function Layout() {
             <NavLink to="/" end className={navClass}>
               Inicio
             </NavLink>
+            <NavLink to="/perfil" className={navClass}>
+              Perfil
+            </NavLink>
             <NavLink to="/ajustes" className={navClass}>
               Ajustes
             </NavLink>

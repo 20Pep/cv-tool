@@ -1,0 +1,42 @@
+Ana Pérez
+Analista de datos
+Buenos Aires, Argentina
+ana.perez@example.com
++54 11 5555-0101
+https://example.com/ana-perez
+
+RESUMEN
+Analista de datos con 4 años de experiencia en reporting, visualización y
+automatización. Trabajé con SQL, Power BI y Excel en equipos de retail y
+logística.
+
+EXPERIENCIA
+
+Nova Retail (ficticia) — Analista de datos
+2021 - Actual · Buenos Aires
+- Analicé datos de ventas con SQL y Power BI y reduje el tiempo de reporte en 30%.
+- Automaticé reportes mensuales con Excel y SQL para 5 áreas de negocio.
+- Construí tableros en Power BI para seguir ventas por categoría y detectar desvíos.
+
+LogiTrans (ficticia) — Asistente de datos
+2019 - 2021 · Rosario
+- Documenté procesos de limpieza de datos y capacité a 8 personas del equipo.
+- Preparé reportes semanales de entregas con Excel y SQL para el área de operaciones.
+
+EDUCACIÓN
+Universidad Ficticia — Licenciatura en Estadística
+2014 - 2019
+
+HABILIDADES
+SQL, Power BI, Excel, Estadística, Limpieza de datos
+
+PROYECTOS
+Panel de ventas — Tablero para seguir ventas por categoría y comparar contra el
+objetivo mensual. Tecnologías: SQL, Power BI.
+https://example.com/panel-ventas
+
+CERTIFICACIONES
+Power BI Data Analyst — Instituto Ficticio, 2023
+
+IDIOMAS
+Español (nativo), Inglés (B2)

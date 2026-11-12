@@ -59,7 +59,7 @@ Herramienta **open source, gratuita y local-first** que cualquiera pueda correr 
 Notas:
 - La base de datos queda encapsulada en `db.ts`. Más adelante se podrá migrar a `node:sqlite` (integrado en Node; hoy en estado release candidate) sin tocar el resto del código.
 - **[VERIFICADO 2026-11-11]** `better-sqlite3` 13.x se instaló y abrió SQLite 3.54.1 en Node 24 sin compilador manual. Ver `docs/decisions.md`.
-- **[VERIFICADO 2026-11-11]** `@react-pdf/renderer` 4.9.0 generó un PDF válido con React 19 en Node 24/ESM; `unpdf` 2.1.0 extrajo el texto. Falta probar `unpdf` con CVs reales variados (Paso 3).
+- **[VERIFICADO 2026-11-11]** `@react-pdf/renderer` 4.9.0 generó un PDF válido con React 19 en Node 24/ESM; `unpdf` 2.1.0 extrajo el texto. En el Paso 3 se probó además con TXT y DOCX ficticios; falta una variedad de CVs reales.
 
 ## 5. Alcance por etapas
 
@@ -468,6 +468,7 @@ Cada paso termina con algo ejecutable y verificable. No avances al siguiente sin
    *Resultado (2026-11-12):* completado. 103 modelos detectados, conexión real `ok` en 1,8 s, selección persistida y recuperada tras reiniciar. Ver `docs/decisions.md`.
 3. **Ingesta y perfil maestro.** Subida de archivos, extracción, `buildProfile.ts`, editor del perfil.
    *Listo cuando:* subiendo un CV real se obtiene un perfil válido, editable y persistido.
+   *Resultado (2026-11-12):* completado con un CV ficticio realista; perfil válido, guardado como versión 1 y recuperado tras reiniciar. El editor es JSON por ahora. Ver `docs/decisions.md`.
 4. **Keywords por código.** `keywords.ts` con tests.
    *Listo cuando:* los tests pasan con al menos 5 ofertas realistas (ficticias o anonimizadas, sin datos personales) en español e inglés.
 5. **Generación.** `tailor.ts` + `validate.ts` con reintentos y vista previa.

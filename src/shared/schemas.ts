@@ -203,3 +203,56 @@ export const TestConnectionResponse = z.union([
 ]);
 
 export type TestConnectionResponse = z.infer<typeof TestConnectionResponse>;
+
+export const DocumentKind = z.enum(['cv', 'portfolio', 'presentation', 'certificate', 'other']);
+
+export type DocumentKind = z.infer<typeof DocumentKind>;
+
+export const DocumentInfo = z.object({
+  id: z.number().int().positive(),
+  name: z.string(),
+  kind: DocumentKind,
+  createdAt: z.string(),
+});
+
+export type DocumentInfo = z.infer<typeof DocumentInfo>;
+
+export const DocumentsResponse = z.object({
+  documents: z.array(DocumentInfo),
+});
+
+export type DocumentsResponse = z.infer<typeof DocumentsResponse>;
+
+export const UploadDocumentResponse = z.object({
+  document: DocumentInfo,
+});
+
+export type UploadDocumentResponse = z.infer<typeof UploadDocumentResponse>;
+
+export const DeleteResponse = z.object({
+  ok: z.literal(true),
+});
+
+export type DeleteResponse = z.infer<typeof DeleteResponse>;
+
+export const ProfileResponse = z.object({
+  profile: MasterProfile.nullable(),
+  version: z.number().int().nonnegative().nullable(),
+  updatedAt: z.string().nullable(),
+});
+
+export type ProfileResponse = z.infer<typeof ProfileResponse>;
+
+export const ProfileSaveRequest = z
+  .object({
+    profile: MasterProfile,
+  })
+  .strict();
+
+export type ProfileSaveRequest = z.infer<typeof ProfileSaveRequest>;
+
+export const GenerateProfileResponse = z.object({
+  profile: MasterProfile,
+});
+
+export type GenerateProfileResponse = z.infer<typeof GenerateProfileResponse>;

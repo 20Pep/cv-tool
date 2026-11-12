@@ -1,11 +1,15 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import fastifyCookie from '@fastify/cookie';
+import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyError, type FastifyInstance, LogController } from 'fastify';
 import type { AppConfig } from './config.js';
 import { type AppDatabase, openDatabase } from './db.js';
+import { createProfileBuilder, type ProfileBuilder } from './profile/buildProfile.js';
 import { createProviderService, type ProviderService } from './providers/service.js';
+import { registerDocumentRoutes } from './routes/documents.js';
+import { registerProfileRoutes } from './routes/profile.js';
 import { registerProviderRoutes } from './routes/providers.js';
 import {
   errorPage,
@@ -21,11 +25,13 @@ export interface AppContext {
   db: AppDatabase;
   config: AppConfig;
   providerService: ProviderService;
+  profileBuilder: ProfileBuilder;
   close(): Promise<void>;
 }
 
 export interface BuildAppOptions {
   providerService?: ProviderService;
+  profileBuilder?: ProfileBuilder;
 }
 
 export async function buildApp(
@@ -42,6 +48,7 @@ export async function buildApp(
 
   const db = openDatabase(config.dbPath, config.migrationsDir);
   const providerService = options.providerService ?? createProviderService();
+  const profileBuilder = options.profileBuilder ?? createProfileBuilder();
   const app = Fastify({
     logger: false,
     logController: new LogController({ disableRequestLogging: true }),
@@ -50,6 +57,13 @@ export async function buildApp(
   });
 
   await app.register(fastifyCookie);
+  await app.register(fastifyMultipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024,
+      files: 1,
+      fields: 5,
+    },
+  });
   registerSecurity(app, config);
   registerTokenExchange(app, config);
 
@@ -65,6 +79,8 @@ export async function buildApp(
   });
 
   registerProviderRoutes(app, db, providerService);
+  registerDocumentRoutes(app, db, config);
+  registerProfileRoutes(app, db, profileBuilder);
 
   if (config.isDev) {
     app.get('/', async () => ({
@@ -112,6 +128,7 @@ export async function buildApp(
     db,
     config,
     providerService,
+    profileBuilder,
     close: async () => {
       await app.close();
       db.close();

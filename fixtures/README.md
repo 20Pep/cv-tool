@@ -10,3 +10,5 @@ personas, empresas, CVs ni ofertas.
   tiene (Python y Tableau).
 - `offers/prompt-injection.md`: oferta con instrucciones ocultas para probar
   que el modelo no las obedece.
+- `documents/ana-perez-cv.txt`: CV ficticio de la misma persona, para probar
+  la subida y la generación del perfil maestro.

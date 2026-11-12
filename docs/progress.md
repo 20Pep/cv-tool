@@ -134,9 +134,56 @@ Después **Guardar ajustes** y reiniciá la app: la selección debe seguir ahí.
 
 **Próximo paso:** Paso 3 — ingesta de documentos y perfil maestro.
 
+## Paso 3 — Ingesta y perfil maestro
+
+**Estado:** completado (2026-11-12).
+
+- [x] Subida multipart de PDF, DOCX, TXT y MD, con límite de 10 MB, validación
+      por extensión y firma, nombres sanitizados y almacenamiento con UUID.
+- [x] Extracción de texto con `unpdf` (PDF), `mammoth` (DOCX) y UTF-8
+      (TXT/MD). Límite de 40 páginas y 200.000 caracteres.
+- [x] `GET/POST/DELETE /api/documents`.
+- [x] `prompts/profile.system.md`.
+- [x] `buildProfile.ts`: prompt, validación Zod, hasta 2 intentos, ids
+      normalizados, procesamiento por documento y fusión si el texto total
+      supera 120.000 caracteres.
+- [x] `GET/PUT /api/profile` y `POST /api/profile/generate`.
+- [x] Persistencia en la tabla `profile`, con versión y fecha de actualización.
+- [x] Pantalla `/perfil`: documentos, subida, borrado, generación con IA y
+      editor JSON validado.
+- [x] 68 tests pasan. Se agregó un DOCX ficticio para probar `mammoth`.
+- [x] Prueba real: CV ficticio subido, perfil generado con OpenCode Go,
+      guardado como versión 1 y recuperado después de reiniciar.
+- [x] `/perfil` servido por Fastify: 200.
+
+**Cómo probar:**
+
+```powershell
+npm run dev
+```
+
+1. Abrí **Perfil**.
+2. Subí `fixtures/documents/ana-perez-cv.txt` o un CV propio.
+3. Usá **Generar perfil con IA**.
+4. Revisá el JSON, corregí lo que haga falta y **Guardar perfil**.
+
+**Observaciones:**
+
+- El editor del perfil es JSON por ahora, para no perder campos. El formulario
+  amigable y la vista previa completa llegan en el Paso 5.
+- Los PDFs escaneados sin texto seleccionable se rechazan con un mensaje claro;
+  no hay OCR.
+- La extracción está probada con PDF generado, TXT, DOCX ficticio y MD. Falta
+  probar con una variedad de CVs reales.
+- La fusión por documento prioriza los CV y los documentos más recientes, y
+  deduplica experiencias, bullets, skills, educación, proyectos,
+  certificaciones e idiomas. Los conflictos no se marcan todavía para revisión.
+- El perfil generado no se guarda hasta que la persona confirma.
+
+**Próximo paso:** Paso 4 — keywords y match % por código.
+
 ## Pasos siguientes
 
-- [ ] Paso 3 — Ingesta y perfil maestro.
 - [ ] Paso 4 — Keywords por código.
 - [ ] Paso 5 — Generación y validación con reintentos.
 - [ ] Paso 6 — Render y archivos.
