@@ -9,6 +9,11 @@ seguimiento de tus postulaciones.
 - La IA que elijas recibe solo el contenido que le mandás para generar el perfil,
   el CV o la carta.
 - Sin cuentas, sin nube, sin telemetría.
+- Inicio guiado: primero conectás tu IA, después cargás tu perfil una vez y al
+  final adaptás cada oferta.
+- Una sola caja para pegar la oferta y todo el contexto; la empresa y el puesto
+  se detectan del texto.
+- Modo claro y oscuro.
 
 ## Requisitos
 
@@ -68,13 +73,17 @@ adaptador descubre el servicio local en este orden:
 
 ## Primer uso
 
-1. **Perfil**: subí tu CV (PDF, DOCX, TXT o MD), generá el perfil con IA,
-   revisalo y guardalo.
-2. **Nueva**: pegá el texto de una oferta, agregá empresa y puesto, generá la
-   vista previa y guardá la postulación con **Guardar y generar PDFs**.
-3. **Tracker**: marcá la postulación como enviada cuando la envíes de verdad,
+1. **Inicio**: seguí los tres pasos. Si todavía no conectaste una IA, el botón
+   principal te lleva a **Ajustes**. Si no hay perfil, te lleva a **Perfil**.
+   Cuando todo está listo, el botón dice **Adaptar para la oferta**.
+2. **Perfil**: subí tu CV (PDF, DOCX, TXT o MD), generá el perfil con IA,
+   revisalo y guardalo. Podés agregar un **esquema de carta** opcional.
+3. **Nueva**: pegá la oferta completa y todo el contexto en una sola caja.
+   cv-tool detecta empresa y puesto del texto, genera la vista previa y guarda
+   la postulación con **Guardar y generar PDFs**.
+4. **Tracker**: marcá la postulación como enviada cuando la envíes de verdad,
    seguí los estados y exportá el historial a Excel.
-4. **Ajustes**: cambiá el modelo o volvé a probar la conexión cuando quieras.
+5. **Ajustes**: cambiá el modelo o volvé a probar la conexión cuando quieras.
 
 La app siempre te deja revisar antes de guardar. Ninguna postulación se marca
 como enviada automáticamente.

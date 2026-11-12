@@ -78,10 +78,21 @@ export function detectOfferMeta(offerText: string): {
   const companyMatch =
     offerText.match(/^\s*\*\*(?:empresa|company)\s*:\*\*\s*(.+)$/im) ??
     offerText.match(/^\s*(?:empresa|company)\s*:\s*(.+)$/im);
+  const firstLine = offerText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(
+      (line) =>
+        line.length > 0 &&
+        !line.startsWith('#') &&
+        !line.startsWith('**') &&
+        !line.startsWith('-') &&
+        !line.startsWith('*'),
+    );
 
   return {
     suggestedCompany: cleanMetaValue(companyMatch?.[1]),
-    suggestedPosition: cleanMetaValue(positionMatch?.[1]),
+    suggestedPosition: cleanMetaValue(positionMatch?.[1] ?? firstLine),
   };
 }
 
@@ -221,6 +232,9 @@ function buildCvUser(profile: MasterProfile, offerText: string): string {
 }
 
 function buildLetterUser(input: TailorInput): string {
+  const outline = input.profile.letterOutline?.trim();
+  const draft = input.draftText?.trim();
+
   return [
     'PERFIL (JSON, fuente de verdad):',
     '<perfil>',
@@ -232,9 +246,15 @@ function buildLetterUser(input: TailorInput): string {
     input.offerText.trim(),
     '</oferta>',
     '',
-    input.draftText === undefined || input.draftText.trim().length === 0
-      ? 'BORRADOR DE CARTA: no hay borrador. Escribí la carta desde el perfil y la oferta.'
-      : `BORRADOR DE CARTA (escrito por la persona):\n<borrador>\n${input.draftText.trim()}\n</borrador>`,
+    outline === undefined || outline.length === 0
+      ? 'ESQUEMA DE CARTA: no hay esquema. Escribí la carta desde el perfil y la oferta.'
+      : `ESQUEMA DE CARTA PREFERIDO (de la persona; respetá estructura y tono, no lo copies literal):\n<esquema>\n${outline}\n</esquema>`,
+    ...(draft === undefined || draft.length === 0
+      ? []
+      : [
+          '',
+          `BORRADOR DE CARTA (de la persona; conservá su voz):\n<borrador>\n${draft}\n</borrador>`,
+        ]),
   ].join('\n');
 }
 

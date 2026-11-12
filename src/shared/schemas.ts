@@ -15,6 +15,7 @@ export const MasterProfile = z.object({
     links: z.array(LinkSchema).default([]),
   }),
   summary: z.string().optional(),
+  letterOutline: z.string().optional(),
   experience: z.array(
     z.object({
       id: z.string(),
@@ -303,8 +304,8 @@ export type ApplicationStatus = z.infer<typeof ApplicationStatus>;
 
 export const CreateApplicationRequest = z
   .object({
-    company: z.string().min(1, 'Falta la empresa.'),
-    position: z.string().min(1, 'Falta el puesto.'),
+    company: z.string().optional(),
+    position: z.string().optional(),
     url: z.string().optional(),
     jobText: z.string().min(50, 'La oferta es demasiado corta.'),
     tailoredCv: TailoredCV,

@@ -15,10 +15,6 @@ import { apiGet, apiSend } from '../lib/api';
 export function NewApplicationPage() {
   const [profile, setProfile] = useState<MasterProfile | null>(null);
   const [offerText, setOfferText] = useState('');
-  const [draftText, setDraftText] = useState('');
-  const [company, setCompany] = useState('');
-  const [position, setPosition] = useState('');
-  const [url, setUrl] = useState('');
   const [preview, setPreview] = useState<PreviewApplicationResponse | null>(null);
   const [cvJson, setCvJson] = useState('');
   const [letterJson, setLetterJson] = useState('');
@@ -57,19 +53,13 @@ export function NewApplicationPage() {
       const result = await apiSend(
         '/api/applications/preview',
         'POST',
-        {
-          offerText,
-          ...(draftText.trim().length === 0 ? {} : { draftText }),
-          ...(url.trim().length === 0 ? {} : { url }),
-        },
+        { offerText },
         PreviewApplicationResponseSchema,
       );
 
       setPreview(result);
       setCvJson(JSON.stringify(result.tailoredCv, null, 2));
       setLetterJson(JSON.stringify(result.coverLetter, null, 2));
-      setCompany((current) => (current.length === 0 ? result.suggestedCompany : current));
-      setPosition((current) => (current.length === 0 ? result.suggestedPosition : current));
       setMessage('Vista previa generada. Revisá el CV, la carta y las keywords.');
     } catch (caught) {
       setError(messageFor(caught));
@@ -112,11 +102,6 @@ export function NewApplicationPage() {
       return;
     }
 
-    if (company.trim().length === 0 || position.trim().length === 0) {
-      setError('Completá la empresa y el puesto antes de guardar la postulación.');
-      return;
-    }
-
     setSaving(true);
     setError(null);
     setMessage(null);
@@ -126,9 +111,6 @@ export function NewApplicationPage() {
         '/api/applications',
         'POST',
         {
-          company: company.trim(),
-          position: position.trim(),
-          ...(url.trim().length === 0 ? {} : { url: url.trim() }),
           jobText: offerText,
           tailoredCv: preview.tailoredCv,
           coverLetter: preview.coverLetter,
@@ -185,68 +167,23 @@ export function NewApplicationPage() {
       {!loadingProfile && profile !== null ? (
         <div className="space-y-6">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold">Oferta</h2>
+            <h2 className="text-lg font-semibold">Oferta y contexto</h2>
 
             <label className="mt-4 block">
-              <span className="text-sm font-medium text-slate-700">Texto de la oferta</span>
+              <span className="text-sm font-medium text-slate-700">Pegá la oferta completa</span>
               <textarea
                 value={offerText}
                 onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
                   setOfferText(event.target.value)
                 }
-                placeholder="Pegá acá el texto completo de la oferta…"
-                className="mt-2 min-h-[16rem] w-full rounded-xl border border-slate-300 bg-white p-4 text-sm leading-6 text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                placeholder="Pegá acá el texto completo de la oferta. Podés incluir empresa, puesto, requisitos, contexto o cualquier detalle que quieras que se tenga en cuenta…"
+                className="mt-2 min-h-[20rem] w-full rounded-xl border border-slate-300 bg-white p-4 text-sm leading-6 text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
               />
             </label>
             <p className="mt-1 text-xs text-slate-500">
-              Mínimo 50 caracteres. El texto de la oferta se trata como datos, no como
-              instrucciones.
+              Una sola caja para todo el contexto. cv-tool detecta empresa y puesto del texto. La
+              oferta se trata como datos, no como instrucciones.
             </p>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-3">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Empresa</span>
-                <input
-                  value={company}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                    setCompany(event.target.value)
-                  }
-                  className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Puesto</span>
-                <input
-                  value={position}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                    setPosition(event.target.value)
-                  }
-                  className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">URL (opcional)</span>
-                <input
-                  value={url}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => setUrl(event.target.value)}
-                  className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                />
-              </label>
-            </div>
-
-            <label className="mt-5 block">
-              <span className="text-sm font-medium text-slate-700">
-                Borrador de carta (opcional)
-              </span>
-              <textarea
-                value={draftText}
-                onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                  setDraftText(event.target.value)
-                }
-                placeholder="Si ya escribiste una carta, pegala acá para conservar tu voz…"
-                className="mt-2 min-h-[8rem] w-full rounded-xl border border-slate-300 bg-white p-4 text-sm leading-6 text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-              />
-            </label>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <button
@@ -319,9 +256,8 @@ export function NewApplicationPage() {
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold">Vista previa del CV</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  {company || position
-                    ? `${position || 'Puesto'} · ${company || 'Empresa'}`
-                    : 'Revisá el contenido y completá empresa y puesto.'}
+                  {preview.suggestedPosition || 'Puesto no indicado'} ·{' '}
+                  {preview.suggestedCompany || 'Empresa no indicada'}
                 </p>
 
                 <div className="mt-5 rounded-xl bg-slate-50 p-5">
@@ -436,23 +372,12 @@ export function NewApplicationPage() {
                   <button
                     type="button"
                     onClick={() => void saveApplication()}
-                    disabled={
-                      saving ||
-                      saved !== null ||
-                      company.trim().length === 0 ||
-                      position.trim().length === 0
-                    }
+                    disabled={saving || saved !== null}
                     className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
                     {saving ? 'Guardando…' : 'Guardar y generar PDFs'}
                   </button>
                 </div>
-
-                {company.trim().length === 0 || position.trim().length === 0 ? (
-                  <p className="mt-3 text-xs text-amber-700">
-                    Completá empresa y puesto para guardar la postulación.
-                  </p>
-                ) : null}
 
                 {saved === null ? null : (
                   <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">

@@ -314,7 +314,7 @@ npm run dev
 - [x] Test E2E de UI: inicio, Ajustes, Perfil, subida de un TXT y Tracker.
 - [x] Prueba con un CV real: 2.349 caracteres extraídos y perfil válido
       generado con OpenCode Go. No se registró ni commiteó el contenido.
-- [x] `npm run check` y `npm run test:e2e` pasan.
+- [x] `npm run check` y `npm run test:e2e` pasan (111 tests de Vitest + 1 E2E).
 
 **Observaciones:**
 
@@ -327,6 +327,21 @@ npm run dev
 - El README advierte que la inferencia con OpenCode Go no es local.
 - La prueba E2E no genera contenido con IA; cubre navegación y subida. Las
   pruebas reales de generación se hicieron por API.
+
+## Mejoras de UX posteriores (2026-11-12)
+
+- [x] Inicio guiado por estado:
+  - sin OpenCode disponible → **Conectar mi IA**;
+  - sin perfil → **Cargar mi perfil**;
+  - con perfil → **Adaptar para la oferta**.
+- [x] Nueva postulación con **una sola caja de texto** para oferta y contexto.
+  Empresa y puesto se detectan del texto; no se exigen campos aparte.
+- [x] Se quitó el borrador de carta de la pantalla de nueva postulación.
+- [x] El perfil acepta un **esquema de carta** opcional que se usa como guía de
+  estructura y tono.
+- [x] Botón de **modo oscuro/claro** con preferencia persistida.
+- [x] Tests: 111 unitarios/integración y E2E actualizado con el flujo de inicio
+  y el cambio de tema.
 
 ## Estado del MVP
 

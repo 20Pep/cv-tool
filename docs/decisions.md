@@ -572,6 +572,44 @@ formatos sigue pendiente.
 - `better-sqlite3` depende de binarios de plataforma.
 - El nombre del paquete y el acceso a npm deben confirmarse al publicar.
 
+## 2026-11-12 — Mejoras de UX
+
+### D-030 — Inicio guiado y oferta en una sola caja
+
+**Decisión:**
+
+- El inicio consulta `/api/providers` y `/api/profile` y muestra un camino de
+  tres pasos:
+  1. Conectar la IA.
+  2. Cargar el perfil.
+  3. Adaptar para la oferta.
+- El botón principal cambia de destino según el estado:
+  - sin proveedor → Ajustes;
+  - sin perfil → Perfil;
+  - con ambos → Nueva postulación, con el texto **Adaptar para la oferta**.
+- La pantalla de nueva postulación tiene **una sola caja** para pegar la oferta
+  y el contexto. Se eliminaron los campos separados de empresa, puesto, URL y
+  borrador de carta.
+- La empresa y el puesto se detectan del texto con `detectOfferMeta`. Si no se
+  pueden detectar, se guardan como “Empresa no indicada” y “Puesto no indicado”
+  en lugar de bloquear el guardado.
+- El borrador de carta ya no se pide en la postulación. En **Perfil** hay un
+  campo opcional `letterOutline` (esquema) que se guarda dentro del perfil y se
+  pasa al prompt de la carta como guía de estructura y tono.
+- El adaptador sigue aceptando `draftText` por API por compatibilidad, pero la
+  UI ya no lo usa.
+
+### D-031 — Modo oscuro
+
+**Decisión:**
+
+- Botón **Oscuro/Claro** en la cabecera.
+- La preferencia se guarda en `localStorage` (`cvtool.theme`); si no hay
+  preferencia, se usa `prefers-color-scheme`.
+- Se agrega la clase `dark` a `<html>` y un bloque de overrides de Tailwind en
+  `styles.css` para fondos, textos, bordes, inputs, badges y botones.
+- No se agregó una librería de temas ni un proveedor de contexto.
+
 ## [VERIFICAR] de PROJECT.md §10.2
 
 | Punto | Resultado |

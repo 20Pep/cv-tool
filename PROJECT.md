@@ -67,7 +67,7 @@ Notas:
 - Adaptador de **OpenCode** como único proveedor de IA.
 - Carga de documentos y extracción de texto.
 - Perfil maestro en JSON, generado por IA y **editable** por la persona.
-- Nueva postulación: pegar oferta (texto) y borrador de carta opcional.
+- Nueva postulación: pegar la oferta y todo el contexto en una sola caja; empresa y puesto se detectan del texto.
 - Generación de CV adaptado + carta, render a PDF, nombre de archivo automático.
 - Keywords y match % calculados por código.
 - Tracker con estados e historial; exportar a Excel/CSV.
@@ -237,6 +237,7 @@ const MasterProfile = z.object({
     links: z.array(z.object({ label: z.string(), url: z.string() })).default([]),
   }),
   summary: z.string().optional(),
+  letterOutline: z.string().optional(),       // esquema/tono de carta de la persona
   experience: z.array(z.object({
     id: z.string(),                       // estable, para trazabilidad
     company: z.string(),
@@ -383,13 +384,13 @@ Al iniciar, `providers/index.ts` consulta qué proveedores están disponibles. L
 ### 11.1 Construir el perfil maestro
 1. La persona sube archivos → se guardan en `uploads/` → se extrae el texto y se guarda en `documents`.
 2. Con el botón "Generar perfil", `buildProfile.ts` envía el texto de los documentos a la IA y recibe un `MasterProfile`. Los ids estables los asigna el código si la IA no los da.
-3. La persona **revisa y edita** el perfil en un formulario. Se valida con Zod al guardar.
+3. La persona **revisa y edita** el perfil en un formulario. Se valida con Zod al guardar. Puede agregar un **esquema de carta** opcional (orden, tono, temas) que se usa como guía, no como carta completa.
 4. Si sube documentos nuevos, se ofrece "actualizar perfil" mostrando las diferencias; nunca se sobrescribe sin confirmación.
 
 Si el texto total supera la ventana de contexto del modelo, procesar por documento y fusionar, priorizando el CV más reciente ante conflictos y marcando los conflictos para revisión manual.
 
 ### 11.2 Nueva postulación
-1. La persona pega: texto de la oferta (obligatorio), empresa y puesto (la IA propone, la persona confirma) y, opcionalmente, un borrador de carta y la URL.
+1. La persona pega la oferta y todo el contexto en **una sola caja**. La empresa y el puesto se detectan del texto; si falla la detección, se usan valores de respaldo y la persona puede corregirlos después. No se pide un borrador de carta en esta pantalla: el esquema de carta vive en el perfil.
 2. **Por código:** `keywords.ts` extrae las keywords de la oferta.
 3. **Por IA:** `tailor.ts` genera `TailoredCV` y `CoverLetter`, con las reglas anti-invención.
 4. **Por código:** se valida (sección 8), se calcula el match % comparando keywords de la oferta contra el texto final del CV y se arma el nombre de archivo.
@@ -420,8 +421,8 @@ Si el texto total supera la ventana de contexto del modelo, procesar por documen
 - Bullets concisos, con verbo de acción al inicio.
 
 ### 12.3 Reglas de la carta (`prompts/letter.system.md`)
-- Si hay borrador de la persona: conservar su voz y estructura, adaptándolo a puesto y empresa.
-- Si no hay: generarla desde el perfil y la oferta, tono profesional y cercano, 3 a 4 párrafos cortos.
+- Si el perfil tiene un **esquema de carta** (`letterOutline`): respetar su estructura, tono y temas, sin copiarlo literal ni usarlo como fuente de hechos nuevos.
+- Si no hay esquema: generarla desde el perfil y la oferta, tono profesional y cercano, 3 a 4 párrafos cortos.
 - No afirmar nada sobre la empresa que no surja del texto de la oferta o de lo que la persona haya escrito.
 
 ### 12.4 Plantilla ATS-friendly (`CvDocument.tsx`)

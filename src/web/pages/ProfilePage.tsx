@@ -23,6 +23,7 @@ export function ProfilePage() {
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [profile, setProfile] = useState<MasterProfile | null>(null);
   const [profileText, setProfileText] = useState('');
+  const [letterOutline, setLetterOutline] = useState('');
   const [version, setVersion] = useState<number | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [draft, setDraft] = useState(false);
@@ -45,6 +46,7 @@ export function ProfilePage() {
     ) => {
       setProfile(nextProfile);
       setProfileText(nextProfile === null ? '' : JSON.stringify(nextProfile, null, 2));
+      setLetterOutline(nextProfile?.letterOutline ?? '');
       setVersion(nextVersion);
       setUpdatedAt(nextUpdatedAt);
       setDraft(false);
@@ -154,7 +156,16 @@ export function ProfilePage() {
       return;
     }
 
-    const parsed = MasterProfile.safeParse(value);
+    const base: Record<string, unknown> =
+      typeof value === 'object' && value !== null ? { ...(value as Record<string, unknown>) } : {};
+
+    if (letterOutline.trim().length > 0) {
+      base.letterOutline = letterOutline.trim();
+    } else {
+      delete base.letterOutline;
+    }
+
+    const parsed = MasterProfile.safeParse(base);
 
     if (!parsed.success) {
       const firstIssue = parsed.error.issues[0];
@@ -356,6 +367,39 @@ export function ProfilePage() {
                 </p>
               </div>
             ) : null}
+
+            <label className="mt-4 block">
+              <span className="text-sm font-medium text-slate-700">
+                Esquema de carta (opcional)
+              </span>
+              <textarea
+                value={letterOutline}
+                onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
+                  const value = event.target.value;
+                  setLetterOutline(value);
+                  setDraft(true);
+                  setProfile((current) => {
+                    if (current === null) {
+                      return current;
+                    }
+
+                    const next = { ...current };
+                    if (value.trim().length > 0) {
+                      next.letterOutline = value;
+                    } else {
+                      delete next.letterOutline;
+                    }
+                    return next;
+                  });
+                }}
+                placeholder="Ej.: saludo, por qué me interesa la empresa, experiencia relevante, cierre."
+                className="mt-2 min-h-[6rem] w-full rounded-xl border border-slate-300 bg-white p-4 text-sm leading-6 text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Se usa como guía de estructura y tono. No es una carta completa ni una fuente de
+                hechos nuevos.
+              </p>
+            </label>
 
             <textarea
               value={profileText}

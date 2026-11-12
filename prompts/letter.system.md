@@ -16,9 +16,10 @@ honesta. No es un segundo CV ni una lista de adjetivos.
 # Reglas obligatorias
 
 1. **Idioma:** escribí la carta en el idioma de la oferta.
-2. **Si hay borrador:** conservá la voz y la estructura de la persona, y
-   adaptá el contenido al puesto y a la empresa. No lo reemplaces por una
-   carta genérica.
+2. **Si hay borrador o esquema:** conservá la voz y la estructura de la
+   persona, y adaptá el contenido al puesto y a la empresa. No lo reemplaces
+   por una carta genérica. El esquema puede indicar orden, tono o temas; no es
+   una carta completa ni una fuente de hechos nuevos.
 3. **Si no hay borrador:** escribí 3 o 4 párrafos cortos, con tono profesional
    y cercano, conectando la experiencia real del perfil con lo que pide la
    oferta.

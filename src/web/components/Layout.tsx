@@ -1,6 +1,36 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 
+const THEME_KEY = 'cvtool.theme';
+
+function initialDarkMode(): boolean {
+  try {
+    const stored = window.localStorage.getItem(THEME_KEY);
+    if (stored === 'dark') {
+      return true;
+    }
+    if (stored === 'light') {
+      return false;
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } catch {
+    return false;
+  }
+}
+
 export function Layout() {
+  const [dark, setDark] = useState(initialDarkMode);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+    try {
+      window.localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
+    } catch {
+      // El tema no se puede persistir; se mantiene en memoria.
+    }
+  }, [dark]);
+
   const navClass = ({ isActive }: { isActive: boolean }): string =>
     `rounded-lg px-3 py-2 text-sm font-medium transition ${
       isActive
@@ -31,6 +61,14 @@ export function Layout() {
             <NavLink to="/ajustes" className={navClass}>
               Ajustes
             </NavLink>
+            <button
+              type="button"
+              onClick={() => setDark((current) => !current)}
+              aria-label={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              className="ml-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+            >
+              {dark ? 'Claro' : 'Oscuro'}
+            </button>
           </nav>
         </div>
       </header>

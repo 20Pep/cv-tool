@@ -19,7 +19,12 @@ import type { AppConfig } from '../config.js';
 import type { AppDatabase } from '../db.js';
 import { buildApplicationsWorkbook } from '../export/xlsx.js';
 import { extractKeywords, matchKeywords } from '../generate/keywords.js';
-import { buildCvTextForMatch, TailorError, type TailorService } from '../generate/tailor.js';
+import {
+  buildCvTextForMatch,
+  detectOfferMeta,
+  TailorError,
+  type TailorService,
+} from '../generate/tailor.js';
 import { validateCoverLetter, validateTailoredCV } from '../generate/validate.js';
 import { getStoredProfile } from '../profile/repository.js';
 import { ProviderError } from '../providers/index.js';
@@ -138,20 +143,23 @@ export function registerApplicationRoutes(
       keywordsUsed: match.matched,
       keywordsMissing: match.missing,
     };
+    const meta = detectOfferMeta(parsed.data.jobText);
+    const company = parsed.data.company?.trim() || meta.suggestedCompany || 'Empresa no indicada';
+    const position = parsed.data.position?.trim() || meta.suggestedPosition || 'Puesto no indicado';
     const rendered = await renderApplicationPdfs({
       profile: stored.profile,
       tailoredCv,
       coverLetter: parsed.data.coverLetter,
-      company: parsed.data.company,
-      position: parsed.data.position,
+      company,
+      position,
       jobText: parsed.data.jobText,
       outputsDir: config.outputsDir,
     });
 
     try {
       const application = createApplication(db, {
-        company: parsed.data.company,
-        position: parsed.data.position,
+        company,
+        position,
         ...(parsed.data.url === undefined ? {} : { url: parsed.data.url }),
         jobText: parsed.data.jobText,
         matchPct: match.matchPct,

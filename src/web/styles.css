@@ -8,3 +8,179 @@
 body {
   margin: 0;
 }
+
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #020617;
+  color: #e2e8f0;
+}
+
+.dark .bg-white {
+  background-color: #0b1220;
+}
+
+.dark .bg-slate-50 {
+  background-color: #0f172a;
+}
+
+.dark .bg-slate-100 {
+  background-color: #1e293b;
+}
+
+.dark .bg-slate-200 {
+  background-color: #334155;
+}
+
+.dark .bg-slate-300 {
+  background-color: #475569;
+}
+
+.dark .bg-slate-900 {
+  background-color: #1e293b;
+}
+
+.dark .bg-slate-950 {
+  background-color: #020617;
+}
+
+.dark .text-slate-900 {
+  color: #f8fafc;
+}
+
+.dark .text-slate-700 {
+  color: #cbd5e1;
+}
+
+.dark .text-slate-600 {
+  color: #94a3b8;
+}
+
+.dark .text-slate-500 {
+  color: #94a3b8;
+}
+
+.dark .text-slate-100 {
+  color: #f8fafc;
+}
+
+.dark .border-slate-100 {
+  border-color: #1e293b;
+}
+
+.dark .border-slate-200 {
+  border-color: #1e293b;
+}
+
+.dark .border-slate-300 {
+  border-color: #334155;
+}
+
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #1e293b;
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #0b1220;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
+}
+
+.dark .bg-emerald-50 {
+  background-color: #052e2b;
+}
+
+.dark .bg-emerald-100,
+.dark .bg-emerald-200 {
+  background-color: #064e3b;
+}
+
+.dark .border-emerald-200,
+.dark .border-emerald-300 {
+  border-color: #065f46;
+}
+
+.dark .text-emerald-900,
+.dark .text-emerald-800,
+.dark .text-emerald-700 {
+  color: #6ee7b7;
+}
+
+.dark .bg-amber-50 {
+  background-color: #451a03;
+}
+
+.dark .border-amber-200 {
+  border-color: #92400e;
+}
+
+.dark .text-amber-900,
+.dark .text-amber-800,
+.dark .text-amber-700 {
+  color: #fcd34d;
+}
+
+.dark .bg-rose-50 {
+  background-color: #4c0519;
+}
+
+.dark .bg-rose-100 {
+  background-color: #881337;
+}
+
+.dark .border-rose-200,
+.dark .border-rose-300 {
+  border-color: #9f1239;
+}
+
+.dark .text-rose-900,
+.dark .text-rose-800,
+.dark .text-rose-700 {
+  color: #fda4af;
+}
+
+.dark .bg-sky-100 {
+  background-color: #0c4a6e;
+}
+
+.dark .text-sky-700 {
+  color: #7dd3fc;
+}
+
+.dark .bg-indigo-100 {
+  background-color: #312e81;
+}
+
+.dark .text-indigo-700 {
+  color: #a5b4fc;
+}
+
+.dark .bg-violet-100 {
+  background-color: #4c1d95;
+}
+
+.dark .text-violet-700 {
+  color: #c4b5fd;
+}
+
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-slate-100:hover {
+  background-color: #1e293b;
+}
+
+.dark .hover\:bg-slate-700:hover {
+  background-color: #334155;
+}
+
+.dark .focus\:ring-slate-200:focus {
+  --tw-ring-color: #334155;
+}

@@ -123,6 +123,26 @@ describe('API de perfil', () => {
     expect(ProfileResponse.parse(savedAgain.json()).version).toBe(2);
   });
 
+  it('persiste el esquema de carta del perfil', async () => {
+    test = await createTestContext({ profileBuilder: fakeBuilder });
+    const withOutline = {
+      ...profile,
+      letterOutline: 'Saludo, motivación, experiencia, cierre.',
+    };
+
+    const saved = await test.context.app.inject({
+      method: 'PUT',
+      url: '/api/profile',
+      headers: authHeaders(),
+      payload: { profile: withOutline },
+    });
+
+    expect(saved.statusCode).toBe(200);
+    expect(ProfileResponse.parse(saved.json()).profile?.letterOutline).toBe(
+      'Saludo, motivación, experiencia, cierre.',
+    );
+  });
+
   it('rechaza un perfil inválido', async () => {
     test = await createTestContext({ profileBuilder: fakeBuilder });
     const response = await test.context.app.inject({

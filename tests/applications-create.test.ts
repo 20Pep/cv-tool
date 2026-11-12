@@ -111,6 +111,27 @@ describe('creación de postulaciones', () => {
     expect(download.rawPayload.byteLength).toBeGreaterThan(1000);
   });
 
+  it('detecta empresa y puesto cuando no se envían', async () => {
+    test = await createTestContext();
+    await saveProfile();
+
+    const response = await test.context.app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: authHeaders(),
+      payload: {
+        jobText,
+        tailoredCv,
+        coverLetter,
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const application = ApplicationResponse.parse(response.json()).application;
+    expect(application.company).toBe('Andes Market');
+    expect(application.position).toBe('Analista de Datos');
+  });
+
   it('resuelve colisiones de nombres al guardar dos veces', async () => {
     test = await createTestContext();
     await saveProfile();
