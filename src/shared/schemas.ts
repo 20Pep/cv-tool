@@ -119,3 +119,87 @@ export const HealthResponse = z.object({
 });
 
 export type HealthResponse = z.infer<typeof HealthResponse>;
+
+export const LLMSettings = z
+  .object({
+    provider: z.string().min(1),
+    model: z.string().min(1),
+    variant: z.string().min(1).optional(),
+  })
+  .strict();
+
+export type LLMSettings = z.infer<typeof LLMSettings>;
+
+export const DEFAULT_LLM_SETTINGS: LLMSettings = {
+  provider: 'opencode-go',
+  model: 'deepseek-v4.1-flash',
+  variant: 'low',
+};
+
+export const LLMModelInfo = z.object({
+  provider: z.string(),
+  model: z.string(),
+  name: z.string().optional(),
+  variants: z.array(z.string()).default([]),
+  isFree: z.boolean().optional(),
+});
+
+export type LLMModelInfo = z.infer<typeof LLMModelInfo>;
+
+export const ProviderInfo = z.object({
+  id: z.string(),
+  name: z.string(),
+  available: z.boolean(),
+  version: z.string().optional(),
+  error: z.string().optional(),
+});
+
+export type ProviderInfo = z.infer<typeof ProviderInfo>;
+
+export const ProvidersResponse = z.object({
+  provider: ProviderInfo,
+  models: z.array(LLMModelInfo),
+  current: LLMSettings,
+});
+
+export type ProvidersResponse = z.infer<typeof ProvidersResponse>;
+
+export const SettingsResponse = z.object({
+  llm: LLMSettings,
+});
+
+export type SettingsResponse = z.infer<typeof SettingsResponse>;
+
+export const SettingsUpdate = z
+  .object({
+    llm: LLMSettings,
+  })
+  .strict();
+
+export type SettingsUpdate = z.infer<typeof SettingsUpdate>;
+
+export const TestConnectionRequest = z
+  .object({
+    provider: z.string().min(1),
+    model: z.string().min(1),
+    variant: z.string().min(1).optional(),
+  })
+  .strict();
+
+export type TestConnectionRequest = z.infer<typeof TestConnectionRequest>;
+
+export const TestConnectionResponse = z.union([
+  z.object({
+    ok: z.literal(true),
+    text: z.string(),
+    latencyMs: z.number().int().nonnegative(),
+    version: z.string().optional(),
+  }),
+  z.object({
+    ok: z.literal(false),
+    error: z.string(),
+    kind: z.string().optional(),
+  }),
+]);
+
+export type TestConnectionResponse = z.infer<typeof TestConnectionResponse>;

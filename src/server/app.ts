@@ -5,6 +5,8 @@ import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyError, type FastifyInstance, LogController } from 'fastify';
 import type { AppConfig } from './config.js';
 import { type AppDatabase, openDatabase } from './db.js';
+import { createProviderService, type ProviderService } from './providers/service.js';
+import { registerProviderRoutes } from './routes/providers.js';
 import {
   errorPage,
   hasValidSessionCookie,
@@ -18,10 +20,18 @@ export interface AppContext {
   app: FastifyInstance;
   db: AppDatabase;
   config: AppConfig;
+  providerService: ProviderService;
   close(): Promise<void>;
 }
 
-export async function buildApp(config: AppConfig): Promise<AppContext> {
+export interface BuildAppOptions {
+  providerService?: ProviderService;
+}
+
+export async function buildApp(
+  config: AppConfig,
+  options: BuildAppOptions = {},
+): Promise<AppContext> {
   for (const directory of [config.dataDir, config.uploadsDir, config.outputsDir]) {
     mkdirSync(directory, { recursive: true });
   }
@@ -31,6 +41,7 @@ export async function buildApp(config: AppConfig): Promise<AppContext> {
   }
 
   const db = openDatabase(config.dbPath, config.migrationsDir);
+  const providerService = options.providerService ?? createProviderService();
   const app = Fastify({
     logger: false,
     logController: new LogController({ disableRequestLogging: true }),
@@ -52,6 +63,8 @@ export async function buildApp(config: AppConfig): Promise<AppContext> {
       uptimeSeconds: Math.round(process.uptime()),
     };
   });
+
+  registerProviderRoutes(app, db, providerService);
 
   if (config.isDev) {
     app.get('/', async () => ({
@@ -98,6 +111,7 @@ export async function buildApp(config: AppConfig): Promise<AppContext> {
     app,
     db,
     config,
+    providerService,
     close: async () => {
       await app.close();
       db.close();

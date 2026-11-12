@@ -58,7 +58,7 @@ Herramienta **open source, gratuita y local-first** que cualquiera pueda correr 
 
 Notas:
 - La base de datos queda encapsulada en `db.ts`. Más adelante se podrá migrar a `node:sqlite` (integrado en Node; hoy en estado release candidate) sin tocar el resto del código.
-- **[VERIFICADO 2026-11-11]** `better-sqlite3` 13.0.3 se instaló y abrió SQLite 3.53.4 en Node 24 sin compilador manual. Ver `docs/decisions.md`.
+- **[VERIFICADO 2026-11-11]** `better-sqlite3` 13.x se instaló y abrió SQLite 3.54.1 en Node 24 sin compilador manual. Ver `docs/decisions.md`.
 - **[VERIFICADO 2026-11-11]** `@react-pdf/renderer` 4.9.0 generó un PDF válido con React 19 en Node 24/ESM; `unpdf` 2.1.0 extrajo el texto. Falta probar `unpdf` con CVs reales variados (Paso 3).
 
 ## 5. Alcance por etapas
@@ -376,6 +376,8 @@ Tareas del adaptador:
 ### 10.3 Detección y Ajustes
 Al iniciar, `providers/index.ts` consulta qué proveedores están disponibles. La pantalla de Ajustes los muestra con estado, selector de modelo y botón **"Probar conexión"** (envía un prompt mínimo y muestra éxito o el error). Si no hay ninguno disponible, la UI explica cómo instalar y levantar OpenCode, sin bloquear el resto de la app (se puede cargar perfil y usar el tracker sin IA).
 
+**Implementado (2026-11-12):** `ProviderService`, `GET /api/providers`, `GET/PUT /api/settings`, `POST /api/providers/test` y pantalla `/ajustes` con selección persistida en SQLite. Ver `docs/decisions.md` (D-014 a D-017).
+
 ## 11. Flujos funcionales
 
 ### 11.1 Construir el perfil maestro
@@ -463,6 +465,7 @@ Cada paso termina con algo ejecutable y verificable. No avances al siguiente sin
    *Resultado (2026-11-11):* completado. `npm run dev` y `npm start` verificados; seguridad, SQLite, `better-sqlite3`, `@react-pdf/renderer` y `unpdf` verificados; 28 tests pasan. Ver `docs/decisions.md`.
 2. **Capa de proveedores + adaptador OpenCode.** Interfaz, adaptador, detección y pantalla de Ajustes con "Probar conexión".
    *Listo cuando:* desde la UI se elige modelo y la prueba devuelve una respuesta real.
+   *Resultado (2026-11-12):* completado. 103 modelos detectados, conexión real `ok` en 1,8 s, selección persistida y recuperada tras reiniciar. Ver `docs/decisions.md`.
 3. **Ingesta y perfil maestro.** Subida de archivos, extracción, `buildProfile.ts`, editor del perfil.
    *Listo cuando:* subiendo un CV real se obtiene un perfil válido, editable y persistido.
 4. **Keywords por código.** `keywords.ts` con tests.

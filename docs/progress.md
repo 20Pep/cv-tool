@@ -49,7 +49,7 @@ Las salidas quedan en `outputs/prototype/<nombre>/` y están en `.gitignore`.
 Variables opcionales: `CVTOOL_PROVIDER`, `CVTOOL_MODEL`, `CVTOOL_VARIANT`,
 `CVTOOL_OPENCODE_URL`, `OPENCODE_SERVER_PASSWORD`.
 
-**Próximo paso:** Paso 2 — capa de proveedores + Ajustes.
+**Próximo paso:** Paso 1 — base del proyecto.
 
 ## Paso 1 — Base del proyecto
 
@@ -66,7 +66,7 @@ Variables opcionales: `CVTOOL_PROVIDER`, `CVTOOL_MODEL`, `CVTOOL_VARIANT`,
 - [x] Migración `001_init.sql` con las tablas del modelo de datos.
 - [x] `bin/cv-tool.js` y `scripts/dev.ts`.
 - [x] `npm run dev` y `npm start` verificados.
-- [x] `better-sqlite3` verificado en Node 24 (SQLite 3.53.4, sin compilador).
+- [x] `better-sqlite3` verificado en Node 24 (13.1.1, SQLite 3.54.1, sin compilador).
 - [x] `@react-pdf/renderer` + `unpdf` verificados con un PDF generado y texto
       extraído.
 - [x] Tests de seguridad, base de datos y PDF: 28 tests pasan.
@@ -97,9 +97,45 @@ Variables útiles: `CVTOOL_PORT` (default 3000), `CVTOOL_VITE_PORT` (default
 - shadcn/ui todavía no está instalado; la UI inicial usa Tailwind directo.
   Se incorpora cuando haya componentes que lo justifiquen.
 
+## Paso 2 — Proveedores + Ajustes
+
+**Estado:** completado (2026-11-12).
+
+- [x] `ProviderService`: detección de OpenCode, listado de modelos, orden con
+      OpenCode Go primero y prueba de conexión.
+- [x] `settings.ts`: selección persistida en SQLite bajo la clave `llm`, con
+      validación Zod y default `opencode-go/deepseek-v4.1-flash` (`low`).
+- [x] `GET /api/providers`, `GET/PUT /api/settings`,
+      `POST /api/providers/test`.
+- [x] Pantalla `/ajustes` con estado de OpenCode, selector de modelo y
+      variante, “Probar conexión” y “Guardar ajustes”.
+- [x] Navegación con `react-router`: Inicio y Ajustes.
+- [x] Tests con proveedor falso: 43 tests pasan.
+- [x] Prueba real contra OpenCode Go: 103 modelos, conexión `ok` en 1,8 s.
+- [x] La selección sobrevive a un reinicio del servidor.
+
+**Cómo probar:**
+
+```powershell
+npm run dev
+```
+
+Abrí **Ajustes**, elegí un modelo de OpenCode Go y usá **Probar conexión**.
+Después **Guardar ajustes** y reiniciá la app: la selección debe seguir ahí.
+
+**Observaciones:**
+
+- La lista incluye modelos de todos los proveedores que OpenCode conoce.
+  “Probar conexión” es la verificación real; un modelo de Google con
+  credenciales vencidas va a fallar ahí.
+- shadcn/ui sigue sin instalarse; Ajustes usa Tailwind directo. Se incorpora en
+  el Paso 3, cuando aparezcan formularios grandes.
+- “Probar conexión” hace una llamada real de pocos tokens y puede tardar.
+
+**Próximo paso:** Paso 3 — ingesta de documentos y perfil maestro.
+
 ## Pasos siguientes
 
-- [ ] Paso 2 — Capa de proveedores + Ajustes.
 - [ ] Paso 3 — Ingesta y perfil maestro.
 - [ ] Paso 4 — Keywords por código.
 - [ ] Paso 5 — Generación y validación con reintentos.

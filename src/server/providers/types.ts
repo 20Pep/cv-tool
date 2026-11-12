@@ -3,6 +3,7 @@ export interface LLMModel {
   model: string;
   name?: string;
   variants?: string[];
+  isFree?: boolean;
 }
 
 export interface ModelRef {

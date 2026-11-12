@@ -218,7 +218,7 @@ devolvió `/api/health` 200.
 
 **Decisión:**
 
-- `better-sqlite3` 13.0.3 con SQLite 3.53.4, `journal_mode=WAL`,
+- `better-sqlite3` 13.1.1 con SQLite 3.54.1, `journal_mode=WAL`,
   `foreign_keys=ON`, `busy_timeout=5000` y `synchronous=NORMAL`.
 - Runner propio en `src/server/db.ts`: crea `schema_migrations`, ordena los
   `.sql` y aplica cada migración dentro de una transacción.
@@ -245,6 +245,62 @@ Vite usa `root: src/web`, y Vitest heredaba esa raíz: no encontraba tests.
 Se agregó `vitest.config.ts` con `root: '.'` y `include: tests/**/*.test.ts(x)`.
 `npm test` vuelve a correr desde la raíz del proyecto.
 
+## 2026-11-12 — Paso 2: proveedores y Ajustes
+
+### D-014 — Persistencia de la selección de modelo
+
+**Decisión:** guardar una sola fila en `settings` con clave `llm` y JSON
+validado por `LLMSettings`:
+
+```json
+{ "provider": "opencode-go", "model": "deepseek-v4.1-flash", "variant": "low" }
+```
+
+- Default si no hay fila: `DEFAULT_LLM_SETTINGS`.
+- Si el JSON guardado está roto o no cumple el esquema, se vuelve al default
+  sin romper la app.
+- No se guardan passwords, URLs ni API keys en SQLite. Las credenciales siguen
+  en OpenCode o en variables de entorno.
+- No hizo falta migración: la tabla `settings` ya existía en `001_init.sql`.
+
+### D-015 — ProviderService, API y UI de Ajustes
+
+**Decisión:**
+
+- `src/server/providers/service.ts` encapsula detección, modelos, orden
+  (OpenCode Go primero) y prueba de conexión. La app no importa
+  `opencode.ts` directamente.
+- `GET /api/providers` devuelve proveedor, versión, modelos y selección actual.
+- `GET/PUT /api/settings` leen y guardan la selección.
+- `POST /api/providers/test` hace una generación mínima real y devuelve
+  `{ ok: true, text, latencyMs }` o `{ ok: false, error, kind? }`.
+- `buildApp` acepta un `ProviderService` inyectable para tests; los tests usan
+  un proveedor falso y no llaman a la IA.
+- Se agregó `react-router` 8.5.1 y las rutas `/` y `/ajustes`. shadcn/ui queda
+  para el Paso 3.
+
+### D-016 — Verificación real del Paso 2
+
+Con OpenCode 2.2.7 y OpenCode Go:
+
+- `GET /api/providers`: proveedor disponible, **103 modelos**, Go primero.
+- `PUT /api/settings`: guardó `opencode-go/deepseek-v4.1-flash/low`.
+- `POST /api/providers/test`: `ok: true`, `latencyMs: 1844`, texto `ok`.
+- `/ajustes` servido por Fastify: 200.
+- Reinicio del servidor: la selección se recuperó desde SQLite.
+
+**Observación:** `/api/model` incluye modelos de proveedores configurados pero
+no necesariamente conectados (por ejemplo Google con una key vencida). La UI
+los muestra; “Probar conexión” es la barrera real.
+
+### D-017 — Dependencias declaradas en `package.json`
+
+Al instalar `react-router`, npm reconcilió `package.json` y eliminó paquetes
+que estaban instalados pero no declarados (el archivo del Paso 1 no listaba
+las dependencias). Se restauró la lista completa y se reinstaló. Regla para
+adelante: **toda dependencia usada debe estar en `package.json`**; no alcanza
+con que exista en `package-lock.json` o `node_modules`.
+
 ## [VERIFICAR] de PROJECT.md §10.2
 
 | Punto | Resultado |
@@ -261,6 +317,6 @@ Se agregó `vitest.config.ts` con `root: '.'` y `include: tests/**/*.test.ts(x)`
 
 | Punto | Estado |
 |---|---|
-| `better-sqlite3` con prebuilds en Node 24 | Verificado (2026-11-11): 13.0.3, SQLite 3.53.4, sin compilador manual. |
+| `better-sqlite3` con prebuilds en Node 24 | Verificado (2026-11-11): 13.x, SQLite 3.54.1, sin compilador manual. |
 | `@react-pdf/renderer` en Node 24/ESM | Verificado (2026-11-11): 4.9.0 con React 19.3.1 generó un PDF válido. |
 | `unpdf` con CVs reales variados | Verificado parcialmente: PDF generado con texto extraíble. CVs reales quedan para el Paso 3. |

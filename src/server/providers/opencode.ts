@@ -17,6 +17,14 @@ const ModelSchema = z.object({
   status: z.string().optional(),
   enabled: z.boolean().optional(),
   variants: z.array(z.object({ id: z.string() })).optional(),
+  cost: z
+    .array(
+      z.object({
+        input: z.number(),
+        output: z.number(),
+      }),
+    )
+    .optional(),
 });
 
 const ModelsResponse = z.object({
@@ -77,14 +85,21 @@ export class OpenCodeProvider implements LLMProvider {
     return response.data
       .filter((model) => model.enabled !== false)
       .filter((model) => model.type === undefined || model.type === 'chat')
-      .map((model) => ({
-        provider: model.providerID,
-        model: model.modelID,
-        ...(model.name === undefined ? {} : { name: model.name }),
-        ...(model.variants === undefined
-          ? {}
-          : { variants: model.variants.map((variant) => variant.id) }),
-      }));
+      .map((model) => {
+        const costs = model.cost ?? [];
+
+        return {
+          provider: model.providerID,
+          model: model.modelID,
+          ...(model.name === undefined ? {} : { name: model.name }),
+          ...(model.variants === undefined
+            ? {}
+            : { variants: model.variants.map((variant) => variant.id) }),
+          ...(costs.length === 0
+            ? {}
+            : { isFree: costs.every((cost) => cost.input === 0 && cost.output === 0) }),
+        };
+      });
   }
 
   async generate(req: GenerateRequest): Promise<string> {
