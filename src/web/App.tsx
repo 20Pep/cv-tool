@@ -5,6 +5,7 @@ import { NewApplicationPage } from './pages/NewApplicationPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
+import { TrackerPage } from './pages/TrackerPage';
 
 export function App() {
   return (
@@ -13,6 +14,7 @@ export function App() {
         <Route index element={<DashboardPage />} />
         <Route path="perfil" element={<ProfilePage />} />
         <Route path="postulaciones/nueva" element={<NewApplicationPage />} />
+        <Route path="tracker" element={<TrackerPage />} />
         <Route path="ajustes" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

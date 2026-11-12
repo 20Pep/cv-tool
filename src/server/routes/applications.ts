@@ -2,10 +2,22 @@ import { createReadStream, existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
-import { CreateApplicationRequest, PreviewApplicationRequest } from '../../shared/schemas.js';
-import { createApplication, getApplication, listApplications } from '../applications.js';
+import {
+  ApplicationStatus,
+  CreateApplicationRequest,
+  PreviewApplicationRequest,
+  UpdateApplicationRequest,
+} from '../../shared/schemas.js';
+import {
+  createApplication,
+  getApplication,
+  getApplicationHistory,
+  listApplications,
+  updateApplication,
+} from '../applications.js';
 import type { AppConfig } from '../config.js';
 import type { AppDatabase } from '../db.js';
+import { buildApplicationsWorkbook } from '../export/xlsx.js';
 import { extractKeywords, matchKeywords } from '../generate/keywords.js';
 import { buildCvTextForMatch, TailorError, type TailorService } from '../generate/tailor.js';
 import { validateCoverLetter, validateTailoredCV } from '../generate/validate.js';
@@ -20,9 +32,27 @@ export function registerApplicationRoutes(
   tailor: TailorService,
   config: AppConfig,
 ): void {
-  app.get('/api/applications', async () => ({
-    applications: listApplications(db),
-  }));
+  app.get('/api/applications', async (request, reply) => {
+    const query = request.query as { status?: string; q?: string };
+    let status: ApplicationStatus | undefined;
+
+    if (query.status !== undefined && query.status.length > 0) {
+      const parsed = ApplicationStatus.safeParse(query.status);
+
+      if (!parsed.success) {
+        return reply.code(400).send({ error: 'El estado del filtro no es válido.' });
+      }
+
+      status = parsed.data;
+    }
+
+    return {
+      applications: listApplications(db, {
+        ...(status === undefined ? {} : { status }),
+        ...(query.q === undefined ? {} : { query: query.q }),
+      }),
+    };
+  });
 
   app.post('/api/applications/preview', async (request, reply) => {
     const parsed = PreviewApplicationRequest.safeParse(request.body);
@@ -143,6 +173,60 @@ export function registerApplicationRoutes(
       ]);
       throw error;
     }
+  });
+
+  app.get('/api/export/xlsx', async (_request, reply) => {
+    const buffer = await buildApplicationsWorkbook(listApplications(db));
+
+    return reply
+      .type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      .header('Content-Disposition', 'attachment; filename="cv-tool-postulaciones.xlsx"')
+      .send(buffer);
+  });
+
+  app.get('/api/applications/:id', async (request, reply) => {
+    const params = request.params as { id?: string };
+    const id = Number(params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return reply.code(400).send({ error: 'La postulación no es válida.' });
+    }
+
+    const application = getApplication(db, id);
+
+    if (application === null) {
+      return reply.code(404).send({ error: 'La postulación no existe.' });
+    }
+
+    const { tailoredJson: _tailoredJson, ...detail } = application;
+
+    return {
+      application: detail,
+      history: getApplicationHistory(db, id),
+    };
+  });
+
+  app.patch('/api/applications/:id', async (request, reply) => {
+    const params = request.params as { id?: string };
+    const id = Number(params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return reply.code(400).send({ error: 'La postulación no es válida.' });
+    }
+
+    const parsed = UpdateApplicationRequest.safeParse(request.body);
+
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'Los cambios no son válidos.' });
+    }
+
+    const updated = updateApplication(db, id, parsed.data);
+
+    if (updated === null) {
+      return reply.code(404).send({ error: 'La postulación no existe.' });
+    }
+
+    return { application: updated };
   });
 
   app.get('/api/applications/:id/files/:kind', async (request, reply) => {

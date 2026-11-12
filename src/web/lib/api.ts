@@ -21,7 +21,7 @@ export async function apiGet<T>(path: string, schema: ZodType<T>): Promise<T> {
 
 export async function apiSend<T>(
   path: string,
-  method: 'POST' | 'PUT',
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   body: unknown,
   schema: ZodType<T>,
 ): Promise<T> {

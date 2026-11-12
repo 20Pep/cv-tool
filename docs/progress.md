@@ -269,9 +269,36 @@ npm run dev
   en español.
 - No hay validación de “una página” para CVs largos.
 
-**Próximo paso:** Paso 7 — tracker, estados, historial y exportación.
+## Paso 7 — Tracker
+
+**Estado:** completado (2026-11-12).
+
+- [x] `GET /api/applications` con filtros por estado y texto.
+- [x] `GET /api/applications/:id` con oferta original e historial.
+- [x] `PATCH /api/applications/:id` para estado, notas, URL, empresa y puesto.
+- [x] Cambio de estado con historial y `sent_at` automático al pasar a `sent`.
+- [x] Pantalla `/tracker` con tabla TanStack, filtros, cambio de estado,
+      detalle, notas, descargas y exportación.
+- [x] Días transcurridos desde el envío (o desde la creación si es borrador).
+- [x] `GET /api/export/xlsx` con `exceljs`.
+- [x] 109 tests pasan.
+- [x] Prueba real: ciclo `draft → sent → interview → offer`, historial de 4
+      entradas, filtro por estado y Excel de 6,9 KB; `/tracker` responde 200.
+
+**Observaciones:**
+
+- No hay reglas de transición: se permite cualquier estado, incluido volver
+  atrás.
+- `sent_at` se setea la primera vez que la postulación pasa a `sent` y no se
+  limpia.
+- Los filtros se resuelven en la API y también en el cliente para la búsqueda
+  inmediata.
+- No hay paginación; el tracker está pensado para uso personal.
+- `exceljs` trae dependencias transitivas antiguas con avisos de npm audit, pero
+  está dentro del stack aprobado. No afecta la ejecución local.
+
+**Próximo paso:** Paso 8 — pulido, README y publicación.
 
 ## Pasos siguientes
 
-- [ ] Paso 7 — Tracker.
 - [ ] Paso 8 — Pulido y publicación.

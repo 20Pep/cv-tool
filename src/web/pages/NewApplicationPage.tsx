@@ -472,6 +472,12 @@ export function NewApplicationPage() {
                       >
                         Descargar carta
                       </a>
+                      <Link
+                        to="/tracker"
+                        className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100"
+                      >
+                        Ir al tracker
+                      </Link>
                     </div>
                   </div>
                 )}

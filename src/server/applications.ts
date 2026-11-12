@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { type ApplicationInfo, ApplicationStatus } from '../shared/schemas.js';
+import {
+  type ApplicationInfo,
+  ApplicationStatus,
+  type StatusHistoryEntry,
+} from '../shared/schemas.js';
 import type { AppDatabase } from './db.js';
 
 const KeywordsSchema = z.array(z.string());
@@ -78,7 +82,30 @@ export function getApplication(db: AppDatabase, id: number): StoredApplication |
   return row === undefined ? null : toStoredApplication(row);
 }
 
-export function listApplications(db: AppDatabase): ApplicationInfo[] {
+export interface ApplicationFilters {
+  status?: ApplicationStatus;
+  query?: string;
+}
+
+export function listApplications(
+  db: AppDatabase,
+  filters: ApplicationFilters = {},
+): ApplicationInfo[] {
+  const clauses: string[] = [];
+  const parameters: unknown[] = [];
+
+  if (filters.status !== undefined) {
+    clauses.push('status = ?');
+    parameters.push(filters.status);
+  }
+
+  if (filters.query !== undefined && filters.query.trim().length > 0) {
+    clauses.push('(company LIKE ? OR position LIKE ?)');
+    const pattern = `%${filters.query.trim()}%`;
+    parameters.push(pattern, pattern);
+  }
+
+  const where = clauses.length === 0 ? '' : `WHERE ${clauses.join(' AND ')}`;
   const rows = db
     .prepare(
       `
@@ -89,10 +116,11 @@ export function listApplications(db: AppDatabase): ApplicationInfo[] {
           letter_path AS letterPath, tailored_json AS tailoredJson,
           notes, created_at AS createdAt, updated_at AS updatedAt
         FROM applications
+        ${where}
         ORDER BY created_at DESC, id DESC
       `,
     )
-    .all() as RawApplicationRow[];
+    .all(...parameters) as RawApplicationRow[];
 
   return rows.map((row) => {
     const application = toStoredApplication(row);
@@ -112,6 +140,104 @@ export function listApplications(db: AppDatabase): ApplicationInfo[] {
       updatedAt: application.updatedAt,
     };
   });
+}
+
+export function getApplicationHistory(
+  db: AppDatabase,
+  applicationId: number,
+): StatusHistoryEntry[] {
+  const rows = db
+    .prepare(
+      `
+        SELECT id, status, changed_at AS changedAt, note
+        FROM status_history
+        WHERE application_id = ?
+        ORDER BY changed_at ASC, id ASC
+      `,
+    )
+    .all(applicationId) as Array<{
+    id: number;
+    status: string;
+    changedAt: string;
+    note: string | null;
+  }>;
+
+  return rows.map((row) => ({
+    id: row.id,
+    status: ApplicationStatus.parse(row.status),
+    changedAt: row.changedAt,
+    note: row.note,
+  }));
+}
+
+export interface UpdateApplicationInput {
+  status?: ApplicationStatus;
+  notes?: string;
+  url?: string;
+  company?: string;
+  position?: string;
+}
+
+export function updateApplication(
+  db: AppDatabase,
+  id: number,
+  input: UpdateApplicationInput,
+): StoredApplication | null {
+  const existing = getApplication(db, id);
+
+  if (existing === null) {
+    return null;
+  }
+
+  const updates: string[] = [];
+  const parameters: unknown[] = [];
+
+  if (input.status !== undefined) {
+    updates.push('status = ?');
+    parameters.push(input.status);
+    updates.push(
+      "sent_at = CASE WHEN ? = 'sent' AND sent_at IS NULL THEN datetime('now') ELSE sent_at END",
+    );
+    parameters.push(input.status);
+  }
+
+  if (input.notes !== undefined) {
+    updates.push('notes = ?');
+    parameters.push(input.notes);
+  }
+
+  if (input.url !== undefined) {
+    const url = input.url.trim();
+    updates.push('url = ?');
+    parameters.push(url.length === 0 ? null : url);
+  }
+
+  if (input.company !== undefined) {
+    updates.push('company = ?');
+    parameters.push(input.company.trim());
+  }
+
+  if (input.position !== undefined) {
+    updates.push('position = ?');
+    parameters.push(input.position.trim());
+  }
+
+  if (updates.length === 0) {
+    return existing;
+  }
+
+  updates.push("updated_at = datetime('now')");
+  db.prepare(`UPDATE applications SET ${updates.join(', ')} WHERE id = ?`).run(...parameters, id);
+
+  if (input.status !== undefined && input.status !== existing.status) {
+    db.prepare('INSERT INTO status_history (application_id, status, note) VALUES (?, ?, ?)').run(
+      id,
+      input.status,
+      input.notes ?? null,
+    );
+  }
+
+  return getApplication(db, id);
 }
 
 interface RawApplicationRow {

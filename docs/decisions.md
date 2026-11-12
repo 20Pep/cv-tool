@@ -485,6 +485,42 @@ herramientas, tablas, columnas, PDFs escaneados).
 - Las skills no se traducen.
 - La fecha de la carta depende del día de generación.
 
+## 2026-11-12 — Paso 7: tracker
+
+### D-026 — Estados, historial y exportación
+
+**Decisión:**
+
+- `applications.status` usa el enum de `ApplicationStatus`; cualquier transición
+  está permitida.
+- Cada cambio de estado inserta una fila en `status_history` con nota opcional.
+- La primera vez que se pasa a `sent`, se completa `sent_at`.
+- `PATCH /api/applications/:id` permite cambiar estado, notas, URL, empresa y
+  puesto; las notas solas no agregan historial.
+- `GET /api/applications` acepta `status` y `q`; además el cliente filtra para
+  respuesta inmediata.
+- La tabla usa `@tanstack/react-table` **v8.21.3**. La v9 cambió la API y sus
+  tipos legacy no cerraban con el proyecto; se fijó v8 para mantener el stack
+  pedido sin reescribir la tabla.
+- `GET /api/export/xlsx` arma un workbook con empresa, puesto, estado, envío,
+  días, match, URL, keywords faltantes y notas.
+- `exceljs` está en el stack; npm reporta dependencias transitivas antiguas y
+  dos vulnerabilidades moderadas. Se documenta y se revisará antes de publicar.
+
+**Verificación real:**
+
+- Ciclo `draft → sent → interview → offer`.
+- Historial: 4 entradas, en orden.
+- `sent_at` completado al pasar a `sent`.
+- Filtro `status=offer`: 1 resultado.
+- Excel de 6.897 bytes.
+- `/tracker`: 200.
+
+**Límites:**
+
+- Sin paginación ni reglas de transición.
+- La fecha de envío no se limpia si se vuelve a un estado anterior.
+
 ## [VERIFICAR] de PROJECT.md §10.2
 
 | Punto | Resultado |

@@ -337,3 +337,46 @@ export const ApplicationResponse = z.object({
 });
 
 export type ApplicationResponse = z.infer<typeof ApplicationResponse>;
+
+export const ApplicationsResponse = z.object({
+  applications: z.array(ApplicationInfo),
+});
+
+export type ApplicationsResponse = z.infer<typeof ApplicationsResponse>;
+
+export const StatusHistoryEntry = z.object({
+  id: z.number().int().positive(),
+  status: ApplicationStatus,
+  changedAt: z.string(),
+  note: z.string().nullable(),
+});
+
+export type StatusHistoryEntry = z.infer<typeof StatusHistoryEntry>;
+
+export const ApplicationDetail = ApplicationInfo.extend({
+  jobText: z.string(),
+});
+
+export type ApplicationDetail = z.infer<typeof ApplicationDetail>;
+
+export const ApplicationDetailResponse = z.object({
+  application: ApplicationDetail,
+  history: z.array(StatusHistoryEntry),
+});
+
+export type ApplicationDetailResponse = z.infer<typeof ApplicationDetailResponse>;
+
+export const UpdateApplicationRequest = z
+  .object({
+    status: ApplicationStatus.optional(),
+    notes: z.string().optional(),
+    url: z.string().optional(),
+    company: z.string().min(1).optional(),
+    position: z.string().min(1).optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'No hay cambios para guardar.',
+  });
+
+export type UpdateApplicationRequest = z.infer<typeof UpdateApplicationRequest>;

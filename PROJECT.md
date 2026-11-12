@@ -482,6 +482,7 @@ Cada paso termina con algo ejecutable y verificable. No avances al siguiente sin
    verificado. Ver `docs/decisions.md`.
 7. **Tracker.** CRUD, estados, historial, días transcurridos, filtros, exportar a Excel.
    *Listo cuando:* se recorre el ciclo draft → sent → interview → offer y se exporta el resultado.
+   *Resultado (2026-11-12):* completado. Ciclo verificado, historial de 4 entradas, filtros y Excel generado. Ver `docs/decisions.md`.
 8. **Pulido y publicación.** README de instalación (incluye cómo instalar y levantar OpenCode), manejo de errores amigable, estados de carga, datos de ejemplo, `package.json` listo para publicar en npm.
    *Listo cuando:* otra persona, desde cero, puede correr `npx cv-tool` siguiendo solo el README.
 
