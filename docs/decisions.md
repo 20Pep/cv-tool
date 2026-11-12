@@ -633,7 +633,9 @@ Con nombres con dos apellidos ("Pedro Espejo Pariani") producía
 completo sanitizado. A pedido de la persona, el formato de archivo es
 `Nombre_Rol_CV.pdf` / `Nombre_Rol_Carta.pdf`: **sin empresa en el nombre**.
 La empresa sigue visible en el tracker y en el membrete de la carta; solo se
-saca del nombre de archivo.
+saca del nombre de archivo. El sanitizado además quita los marcadores de
+género con barra ("Desarrollador/a" → "Desarrollador" en el archivo; "CI/CD"
+no se toca) y corta por palabra completa, no a mitad.
 
 **Puesto objetivo en el CV:** el punto de detectar el puesto es usarlo. En
 `preview`, `detectOfferMeta` corre **antes** de generar el CV y el puesto
@@ -657,6 +659,24 @@ Se usa en dos lugares con el mismo código: `validateTailoredCV` (skills del CV
 contra el perfil) y `matchKeywords` (keywords de la oferta contra el texto del
 CV). Así, una oferta que pide GitHub se considera cubierta si el perfil
 declara Git, y la IA puede listar GitHub sin que el guardado lo rechace.
+
+### D-036 — Publicación en GitHub
+
+- Repositorio público: https://github.com/20Pep/cv-tool (rama `main`).
+- **Revisión de seguridad previa:** el árbol (106 archivos) y todo el historial
+  (16 commits) se escanearon buscando secretos, emails, tokens y datos
+  personales. No hay ninguno. Los tokens `e2e-launch`/`e2e-session` son de
+  prueba y están documentados como tal.
+- `.gitignore` excluye desde el primer commit `data/`, `outputs/`, `uploads/`,
+  `.env*`, `dist/`, `.e2e-data/` y `test-results/`; verificado que no hay
+  archivos de esas carpetas en el repo.
+- Los fixtures son ficticios (Ana Pérez, empresas ficticias). El nombre real de
+  la persona solo aparece como autor del proyecto (LICENSE, `package.json` y
+  commits propios), que es lo esperable en un repo personal.
+- El email de git de los commits (`espejoparianipedro@gmail.com`) queda visible
+  en el historial público; es la identidad de la persona. Si quisiera
+  ocultarlo, habría que reescribir el historial con el email `noreply` de
+  GitHub (decisión de la persona, no se hizo por defecto).
 
 ## 2026-11-12 — Corrección del error "La postulación no es válida"
 

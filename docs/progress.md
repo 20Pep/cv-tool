@@ -1,5 +1,18 @@
 # Progreso
 
+## Publicación y UX final (2026-11-12, tarde)
+
+- [x] Botón **Guardar en el tracker** visible apenas se genera el CV (con
+  descargas de PDFs y "Ir al tracker" después de guardar); se quitó la
+  sección de guardado duplicada del final.
+- [x] Nombres de archivo más limpios: "Desarrollador/a" → "Desarrollador"
+  (los marcadores de género con barra no se convierten en guiones bajos),
+  "CI/CD" se mantiene, y los cortes por largo respetan palabras completas.
+- [x] Repositorio publicado: https://github.com/20Pep/cv-tool (rama `main`).
+- [x] Revisión de seguridad del árbol y del historial completo: sin secretos,
+  emails ni datos personales; `.gitignore` verificado sobre lo publicado.
+- [x] 128 tests de Vitest + 2 E2E pasan.
+
 ## Mejoras de adaptación (2026-11-12, tarde)
 
 - [x] **Nombre del PDF con el nombre completo**: antes tomaba solo primer
