@@ -30,6 +30,19 @@ describe('settings de LLM', () => {
     expect(getLlmSettings(db)).toEqual(selection);
   });
 
+  it('guarda la fidelidad elegida', () => {
+    db = openDatabase(':memory:', migrationsDir);
+    const selection = {
+      provider: 'opencode-go',
+      model: 'mimo-v2.5',
+      variant: 'low',
+      fidelity: 'strict' as const,
+    };
+
+    expect(saveLlmSettings(db, selection)).toEqual(selection);
+    expect(getLlmSettings(db).fidelity).toBe('strict');
+  });
+
   it('vuelve al default si el JSON guardado es inválido', () => {
     db = openDatabase(':memory:', migrationsDir);
     db.prepare("INSERT INTO settings (key, value) VALUES ('llm', 'esto no es json')").run();

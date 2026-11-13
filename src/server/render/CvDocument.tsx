@@ -14,6 +14,7 @@ const LABELS = {
     experience: 'Experiencia',
     education: 'Educación',
     skills: 'Habilidades',
+    adjacent: 'Conocimientos afines',
     projects: 'Proyectos',
     certifications: 'Certificaciones',
     languages: 'Idiomas',
@@ -24,6 +25,7 @@ const LABELS = {
     experience: 'Experience',
     education: 'Education',
     skills: 'Skills',
+    adjacent: 'Related skills',
     projects: 'Projects',
     certifications: 'Certifications',
     languages: 'Languages',
@@ -177,6 +179,17 @@ export function CvDocument({ profile, tailoredCv, language }: CvDocumentProps) {
           <Text style={styles.sectionTitle}>{labels.skills}</Text>
           <Text>{tailoredCv.skills.join(' · ')}</Text>
         </View>
+
+        {(tailoredCv.adjacentSkills ?? []).length === 0 ? null : (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{labels.adjacent}</Text>
+            <Text>
+              {(tailoredCv.adjacentSkills ?? [])
+                .map((skill) => `${skill.name} (${skill.basedOn})`)
+                .join(' · ')}
+            </Text>
+          </View>
+        )}
 
         {profile.projects.length === 0 ? null : (
           <View style={styles.section}>

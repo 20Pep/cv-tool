@@ -1,4 +1,4 @@
-import { normalizeText } from './validate.js';
+import { normalizeText } from './text.js';
 
 /**
  * Familias de skills con una tecnología base y sus variantes de nombre. Son

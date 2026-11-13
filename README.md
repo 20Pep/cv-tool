@@ -122,8 +122,9 @@ como enviada automáticamente.
   el prompt.
 - El MVP usa `generate/text` de OpenCode: no hay sesión de agente ni ejecución
   de herramientas.
-- Toda salida de la IA pasa por Zod y por las reglas anti-invención antes de
-  mostrarse o guardarse.
+- Toda salida de la IA pasa por Zod y por las reglas anti-invención (tres
+  niveles: reescritura libre, ajustes marcados para confirmar y datos rojos que
+  el código rechaza) antes de mostrarse o guardarse.
 - Los nombres de archivo se sanitizan y las descargas se resuelven dentro de
   `outputs/`.
 
@@ -175,9 +176,12 @@ Ejecutá `npm run build` antes.
 
 ## Límites actuales
 
-- El editor del perfil y de la vista previa es JSON; el formulario amigable
-  llegará más adelante.
-- Las skills del CV no se traducen entre idiomas.
+- El editor amigable del perfil cubre todos los campos; el modo JSON avanzado
+  queda para ediciones masivas.
+- Las skills del CV no se traducen entre idiomas (solo el titular y el cargo).
+- Los ajustes amarillos (redondeo de cifras, un escalón de verbo y skills
+  afines) requieren tu confirmación antes de guardar; el modo Estricta los
+  desactiva.
 - No hay OCR para PDFs escaneados.
 - No hay búsqueda de ofertas, scraping ni postulación automática.
 - No hay autenticación de usuarios, nube ni sincronización.

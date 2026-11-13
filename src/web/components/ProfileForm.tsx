@@ -1,5 +1,5 @@
 // biome-ignore-all lint/suspicious/noArrayIndexKey: las listas del perfil (links, estudios, skills, certificaciones, idiomas) no tienen id estable en el esquema; el orden es la identidad.
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import type { MasterProfile } from '../../shared/schemas';
 
 type Experience = MasterProfile['experience'][number];
@@ -436,6 +436,17 @@ export function ProfileForm({
         />
       </Section>
 
+      <Section
+        title="Tecnologías familiares"
+        description="Cosas que tocaste pero no dominás. Se usan solo como base para una skill afín, nunca como experiencia propia."
+      >
+        <CommaListField
+          label="Tecnologías (separadas por coma)"
+          value={value.familiarSkills ?? []}
+          onChange={(familiarSkills) => onChange({ ...value, familiarSkills })}
+        />
+      </Section>
+
       <Section title="Proyectos" description="Proyectos propios o freelance que sumen al CV.">
         <div className="mt-3 space-y-4">
           {value.projects.map((project, index) => (
@@ -744,6 +755,16 @@ function CommaListField({
 }) {
   const [text, setText] = useState(() => value.join(', '));
 
+  // Si el valor cambia desde afuera (por ejemplo, al generar el perfil), se
+  // refleja acá. Mientras se escribe, el texto local manda para no perder comas.
+  useEffect(() => {
+    const current = parseList(text);
+
+    if (!sameList(current, value)) {
+      setText(value.join(', '));
+    }
+  }, [text, value]);
+
   return (
     <Field label={label}>
       <input
@@ -751,17 +772,23 @@ function CommaListField({
         onChange={(event) => {
           const raw = event.target.value;
           setText(raw);
-          onChange(
-            raw
-              .split(',')
-              .map((item) => item.trim())
-              .filter((item) => item.length > 0),
-          );
+          onChange(parseList(raw));
         }}
         className={INPUT}
       />
     </Field>
   );
+}
+
+function parseList(value: string): string[] {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function sameList(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((item, index) => item === right[index]);
 }
 
 function optional(value: string): string | undefined {

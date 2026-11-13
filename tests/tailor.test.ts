@@ -18,6 +18,11 @@ const offerText = readFileSync(
   'utf8',
 );
 
+const englishOfferText = readFileSync(
+  new URL('../fixtures/offers/backend-en.md', import.meta.url),
+  'utf8',
+);
+
 const cvResponse = JSON.stringify({
   summary: 'Analista de datos con 4 años de experiencia en SQL y Power BI.',
   headline: 'Analista de datos',
@@ -64,11 +69,25 @@ function providerFromCv(cv: string): LLMProvider {
 }
 
 describe('detectOfferMeta', () => {
-  it('detecta empresa y puesto y limpia “ficticia”', () => {
+  it('detecta empresa y puesto y limpia "ficticia"', () => {
     expect(detectOfferMeta(offerText)).toEqual({
       suggestedCompany: 'Andes Market',
       suggestedPosition: 'Analista de Datos',
     });
+  });
+
+  it('detecta empresa y puesto en una oferta en inglés', () => {
+    expect(detectOfferMeta(englishOfferText)).toEqual({
+      suggestedCompany: 'Cloud Harbor',
+      suggestedPosition: 'Backend Engineer',
+    });
+  });
+
+  it('detecta el puesto en frases en inglés sin encabezado', () => {
+    expect(
+      detectOfferMeta('We are looking for a Data Analyst to join our team.\nCompany: Acme')
+        .suggestedPosition,
+    ).toBe('Data Analyst');
   });
 });
 
@@ -90,6 +109,69 @@ describe('TailorService', () => {
     expect(preview.keywords.missing).toContain('python');
     expect(preview.keywords.matchPct).toBeGreaterThan(0);
     expect(preview.keywords.matchPct).toBeLessThan(100);
+  });
+
+  it('acepta ajustes declarados y calcula el match con afines', async () => {
+    const enhancedCv = JSON.stringify({
+      summary: 'Analista de datos con 4 años de experiencia en SQL y Power BI.',
+      headline: 'Analista de datos',
+      experience: [
+        {
+          experienceId: 'exp-nova',
+          bullets: [
+            {
+              text: 'Analicé datos de ventas con SQL y Power BI y reduje el tiempo de reporte en 33%.',
+              sourceBulletId: 'nova-b1',
+              stretch: { kind: 'number', note: 'redondeo de 30 a 33' },
+            },
+          ],
+        },
+      ],
+      skills: ['SQL', 'Power BI'],
+      adjacentSkills: [
+        { name: 'Google Sheets', basedOn: 'Excel', why: 'Ambas son planillas de cálculo.' },
+      ],
+      keywordsUsed: [],
+      keywordsMissing: [],
+    });
+    const service = createTailorService(async () => providerFromCv(enhancedCv));
+    const preview = await service.preview({
+      profile,
+      offerText,
+      model: { provider: 'fake', model: 'fake' },
+    });
+
+    expect(preview.tailoredCv.experience[0]?.bullets[0]?.stretch?.kind).toBe('number');
+    expect(preview.tailoredCv.adjacentSkills).toHaveLength(1);
+    expect(preview.keywords.matchPctWithAdjacent).toBeGreaterThanOrEqual(preview.keywords.matchPct);
+  });
+
+  it('la fidelidad estricta rechaza un CV con ajustes', async () => {
+    const cvWithStretch = JSON.stringify({
+      ...JSON.parse(cvResponse),
+      experience: [
+        {
+          experienceId: 'exp-nova',
+          bullets: [
+            {
+              text: 'Analicé datos de ventas con SQL y Power BI y reduje el tiempo de reporte en 33%.',
+              sourceBulletId: 'nova-b1',
+              stretch: { kind: 'number', note: 'redondeo' },
+            },
+          ],
+        },
+      ],
+    });
+    const service = createTailorService(async () => providerFromCv(cvWithStretch));
+
+    await expect(
+      service.preview({
+        profile,
+        offerText,
+        model: { provider: 'fake', model: 'fake' },
+        fidelity: 'strict',
+      }),
+    ).rejects.toBeInstanceOf(TailorError);
   });
 
   it('reintenta si el CV no pasa la validación anti-invención', async () => {

@@ -61,6 +61,21 @@ describe('documentos PDF', () => {
     expect(text).toContain('Power BI');
   });
 
+  it('incluye la sección de conocimientos afines', async () => {
+    const buffer = await renderCvPdf(
+      profile,
+      {
+        ...tailoredCv,
+        adjacentSkills: [{ name: 'Looker', basedOn: 'Power BI', why: 'Herramientas de BI.' }],
+      },
+      'es',
+    );
+    const text = await extractPdfText(buffer);
+
+    expect(text.toUpperCase()).toContain('CONOCIMIENTOS AFINES');
+    expect(text).toContain('Looker (Power BI)');
+  });
+
   it('genera una carta con saludo, párrafos y cierre', async () => {
     const buffer = await renderLetterPdf(
       profile,

@@ -50,6 +50,7 @@ export function SettingsPage() {
         setSelected({
           provider: savedModel.provider,
           model: savedModel.model,
+          fidelity: data.current.fidelity ?? 'enhanced',
           ...(variant === undefined ? {} : { variant }),
         });
       } else if (fallbackModel !== undefined) {
@@ -57,6 +58,7 @@ export function SettingsPage() {
         setSelected({
           provider: fallbackModel.provider,
           model: fallbackModel.model,
+          fidelity: data.current.fidelity ?? 'enhanced',
           ...(variant === undefined ? {} : { variant }),
         });
       } else {
@@ -127,6 +129,7 @@ export function SettingsPage() {
     setSelected({
       provider,
       model: modelId,
+      fidelity: selected?.fidelity ?? 'enhanced',
       ...(variant === undefined ? {} : { variant }),
     });
     setTestResult(null);
@@ -166,10 +169,11 @@ export function SettingsPage() {
     setSaveError(null);
 
     try {
+      const { fidelity: _fidelity, ...model } = selected;
       const result = await apiSend(
         '/api/providers/test',
         'POST',
-        selected,
+        model,
         TestConnectionResponseSchema,
       );
       setTestResult(result);
@@ -351,6 +355,55 @@ export function SettingsPage() {
                     )}
                   </select>
                 </label>
+              </div>
+            )}
+
+            {selected === null ? null : (
+              <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-medium text-slate-900">Fidelidad del CV</p>
+                <p className="mt-1 text-xs leading-5 text-slate-600">
+                  Define cuánto puede estirar la IA sin inventar. En los dos modos se rechazan
+                  empresas, cargos, fechas, títulos y herramientas atribuidas a un empleo donde no
+                  estaban.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelected((current) =>
+                        current === null ? current : { ...current, fidelity: 'strict' },
+                      )
+                    }
+                    className={`rounded-lg border px-3 py-2 text-left text-xs font-medium transition ${
+                      (selected.fidelity ?? 'enhanced') === 'strict'
+                        ? 'border-slate-900 bg-slate-900 text-white'
+                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    Estricta
+                    <span className="mt-1 block font-normal opacity-80">
+                      Solo reescritura fiel. Comportamiento anterior.
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelected((current) =>
+                        current === null ? current : { ...current, fidelity: 'enhanced' },
+                      )
+                    }
+                    className={`rounded-lg border px-3 py-2 text-left text-xs font-medium transition ${
+                      (selected.fidelity ?? 'enhanced') === 'enhanced'
+                        ? 'border-slate-900 bg-slate-900 text-white'
+                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    Potenciada
+                    <span className="mt-1 block font-normal opacity-80">
+                      Mejoras marcadas para que las confirmes.
+                    </span>
+                  </button>
+                </div>
               </div>
             )}
 

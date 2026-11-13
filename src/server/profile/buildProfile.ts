@@ -160,6 +160,7 @@ export function mergeProfiles(profiles: MasterProfile[]): MasterProfile {
     experience: mergeExperience(profiles.flatMap((profile) => profile.experience)),
     education: mergeEducation(profiles.flatMap((profile) => profile.education)),
     skills: mergeSkills(profiles.flatMap((profile) => profile.skills)),
+    familiarSkills: [...new Set(profiles.flatMap((profile) => profile.familiarSkills))],
     projects: mergeProjects(profiles.flatMap((profile) => profile.projects)),
     certifications: mergeCertifications(profiles.flatMap((profile) => profile.certifications)),
     languages: mergeLanguages(profiles.flatMap((profile) => profile.languages)),

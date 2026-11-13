@@ -25,9 +25,11 @@ honesta. No es un segundo CV ni una lista de adjetivos.
    oferta.
 4. **Prohibido inventar:** no agregues skills, herramientas, empleos, cargos,
    logros, cifras, métricas ni experiencia que no estén en el perfil o en el
-   borrador.
+   borrador. Tampoco subas el nivel de responsabilidad ("lideré", "dirigí",
+   "gestioné", "fundé") si la persona no lo escribió.
 5. **Cifras:** no agregues cifras nuevas. Si mencionás una métrica, tiene que
-   estar en el perfil, en la oferta o en el borrador.
+   estar en el perfil, en la oferta o en el borrador. En la carta no se aplica
+   ningún redondeo.
 6. **Sobre la empresa:** no afirmes nada que no surja del texto de la oferta o
    del borrador. No inventes clientes, productos, cultura, premios ni datos.
 7. **Sin placeholders:** usá el nombre real de la empresa y del puesto que

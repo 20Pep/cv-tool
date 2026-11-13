@@ -1,5 +1,31 @@
 # Progreso
 
+## “Mejorar sí, falsificar no” y ofertas en inglés (2026-11-13)
+
+- [x] Principio #1 y §8/§12 de `PROJECT.md` actualizados; D-043 reemplaza
+      parcialmente a D-007.
+- [x] **Amarillo controlado:** `stretch` por bullet (`verb` | `number`).
+      Redondeo de cifras hasta +10% (años nunca), declaración obligatoria,
+      confirmación o vuelta a la versión fiel en la vista previa. Guardar queda
+      bloqueado mientras haya ajustes sin confirmar.
+- [x] **Rojo verificado:** verbos de responsabilidad mayor no respaldados y
+      herramientas del perfil atribuidas a una experiencia donde no figuraban.
+- [x] **Skills afines** (`adjacent.ts`, tabla curada) fuera de los bullets, con
+      `basedOn` obligatorio del perfil. Se muestran en la vista previa y en el
+      PDF como “Conocimientos afines / Related skills”.
+- [x] **Match honesto:** se muestran match real y con afines; el tracker guarda
+      el real.
+- [x] **Fidelidad** en Ajustes: Potenciada (default) o Estricta.
+- [x] **Ofertas en inglés:** detección de puesto/empresa en frases inglesas,
+      aviso en la UI y test con `backend-en.md`; el CV, el titular, el cargo y
+      la carta salen en el idioma de la oferta. **Verificado con generación
+      real:** CV 43 s y carta 18 s válidos; la inyección siguió resistida.
+- [x] **Tecnologías familiares** en el perfil (`familiarSkills`): cosas que la
+      persona tocó pero no domina. Se pueden usar como `basedOn` de una skill
+      afín, nunca como skill propia. Campo nuevo en el formulario con lista
+      separada por comas.
+- [x] 176 tests unitarios + 4 E2E pasan.
+
 ## Mejoras de uso diario: cancelar, export filtrado, backup, rango y formulario (2026-11-13)
 
 - [x] **Cancelar y reintentar la generación.** `AbortController` en la

@@ -124,6 +124,13 @@ como 5 ofertas realistas, ficticias o anonimizadas, sin datos personales.
 - Las cifras del `summary` deben existir en el perfil.
 - Las cifras de la carta deben existir en el perfil, la oferta o el borrador.
 
+**Actualizado 2026-11-13:** el principio cambió a “mejorar sí, falsificar no”.
+La decisión **D-043** reemplaza parcialmente esta: las cifras de resultado se
+pueden redondear hasta +10% con marca y confirmación, los verbos suben un solo
+escalón declarado y las skills afines van en una sección aparte. Las reglas
+rojas (empresas, cargos, fechas, títulos, herramientas atribuidas a un empleo
+donde no estaban) siguen rechazándose.
+
 **Límite conocido:** no se detectan afirmaciones inventadas sin cifras (por
 ejemplo, “lideré equipos internacionales”). La carta y el resumen no tienen
 trazabilidad por frase. Pendiente decidir entre:
@@ -803,6 +810,76 @@ previa y explotaba al guardar con un mensaje genérico sin campo ni detalle.
   idiomas) usan el índice como clave de React; se desactiva esa regla de
   Biome en ese archivo con una justificación, porque no hay identidad estable
   mejor disponible.
+
+### D-043 — “Mejorar sí, falsificar no”: tres niveles de edición
+
+Reemplaza parcialmente a D-007 y cambia el principio #1 de `PROJECT.md`. La IA
+puede potenciar el CV sin volverlo indefendible en una entrevista:
+
+- **Verde (sin aviso):** reescribir bullets con verbo + qué + cómo + resultado,
+  reordenar/priorizar, usar el vocabulario y las equivalencias de nombre de la
+  oferta (Git ↔ GitHub), recortar lo irrelevante y orientar el resumen al puesto.
+- **Amarillo (marcado y confirmado):**
+  - **Cifras de resultado:** redondeo hacia arriba de hasta **+10%** sobre una
+    cifra existente (`stretch.kind = 'number'`). Los años (1900-2100) nunca se
+    estiran y no se permite una cifra donde no había ninguna. El resumen y la
+    carta siguen exactos.
+  - **Verbo:** un solo escalón (ayudé → colaboré/contribuí), declarado con
+    `stretch.kind = 'verb'`. Saltar a lideré/dirigí/gestioné/fundé se rechaza si
+    el bullet de origen no lo decía (también en inglés: led/managed/directed/
+    founded).
+  - **Skills afines:** `adjacentSkills` con `name`, `basedOn` (skill real del
+    perfil) y `why`. La tabla curada vive en `src/shared/adjacent.ts`
+    (MySQL↔PostgreSQL, Jest↔Vitest, AWS↔GCP, React↔Next.js, etc.). Nunca dentro
+    de un bullet: eso afirmaría que se usó en un empleo concreto.
+- **Rojo (rechazo de código):** empresas, cargos, fechas, años de experiencia,
+  títulos, certificaciones, idiomas/niveles, métricas nuevas y una herramienta
+  del perfil atribuida a una experiencia donde no figuraba
+  (`tool-not-in-experience`).
+
+**Ejemplo del documento:** 1.800 → “~2.000” es +11,1%, así que queda fuera del
+límite del +10%; para mantenerlo, usar “~1.980” o dejarlo en 1.800. Se eligió
+la regla estricta y determinista antes que un redondeo “comercial” ambiguo.
+
+**Confirmación en la UI:** cada ajuste amarillo se muestra al lado del bullet
+con su nota y dos acciones: “Confirmar ajuste” o “Volver a la versión fiel”.
+Mientras haya ajustes sin confirmar, “Guardar en el tracker” está deshabilitado.
+Los PDFs se pueden descargar antes de confirmar (es una vista previa), pero no
+se guarda nada sin confirmación.
+
+**Límite conocido:** el código controla el rango numérico, no la semántica. Si
+un bullet tiene 10 y el adaptado dice 11, se acepta como redondeo aunque el 11
+sea otra cosa (usuarios vs. años); por eso el ajuste se muestra con la nota y la
+persona lo confirma o vuelve a la versión fiel. El prompt restringe el redondeo
+a métricas de resultado y el resumen/la carta siguen exactos.
+
+**Fidelidad configurable:** `LLMSettings.fidelity` (`enhanced` por defecto,
+`strict` opcional). En `strict`, la validación rechaza `stretch` y
+`adjacentSkills`; el prompt recibe “MODO ESTRICTO” y solo reescribe.
+
+**Tecnologías familiares:** `MasterProfile.familiarSkills` declaradas por la
+persona (“tocaste pero no dominás”). Valen como `basedOn` de una skill afín,
+pero nunca como skill propia ni experiencia. Se editan desde el formulario.
+
+**Match honesto:** se muestran `matchPct` (solo perfil) y
+`matchPctWithAdjacent` (sumando afines). El número que se guarda en el tracker
+sigue siendo el real.
+
+**Ofertas en inglés:** el prompt ya pedía escribir en el idioma de la oferta,
+pero se completó el camino: `detectOfferMeta` entiende “looking for a …”,
+“hiring/seeking …” y “Role/Position:”; la UI avisa que se puede pegar en
+español o inglés; hay tests con `backend-en.md`. El CV, el `headline`, el `role`
+y la carta salen en inglés cuando la oferta está en inglés. Los nombres de las
+skills se mantienen como están en el perfil (no se traducen), para no romper la
+trazabilidad. **Verificación real (2026-11-13):** `CVTOOL_OFFER=backend-en.md
+npm run prototype` generó CV (43 s) y carta (18 s) válidos, con
+`PostgreSQL` como afín de `SQL`, y la oferta de prompt injection siguió sin
+colar skills ni cifras.
+
+**Tests:** 176 unitarios (nuevos: tabla de afinidades, rango +10%, año no
+estirable, verbo no respaldado, herramienta por empleo, `basedOn` inexistente,
+par no afín, modo estricto, fidelidad persistida, meta en inglés, preview con
+ajustes, match con afines y sección de afines en el PDF) + 4 E2E.
 
 ## [VERIFICAR] de PROJECT.md §10.2
 

@@ -28,7 +28,7 @@ Herramienta **open source, gratuita y local-first** que cualquiera pueda correr 
 
 ## 3. Principios de diseño (no negociables)
 
-1. **La IA no inventa.** Solo reformula, reordena y prioriza información que ya está en el perfil maestro. Nunca agrega skills, empleos, títulos, métricas ni logros. Lo que la oferta pide y la persona no tiene se reporta como **faltante**, no se inserta en el CV.
+1. **Mejorar sí, falsificar no.** La IA puede reescribir, reordenar, priorizar y potenciar lo que ya está en el perfil, pero nunca inventar. Hay tres niveles: **verde** (reescritura y vocabulario, automático), **amarillo** (redondeo de cifras hasta +10%, un escalón de verbo y skills afines, siempre marcado y confirmado por la persona) y **rojo** (empresas, cargos, fechas, títulos, certificaciones, idiomas, métricas donde no había ninguna y herramientas atribuidas a un empleo donde no estaban; el código lo rechaza). Lo que la oferta pide y no tiene ni una base afín se reporta como **faltante**, no se inserta en el CV.
 2. **El formato lo controla el código, no la IA.** La IA devuelve JSON validado; una plantilla fija ATS-friendly lo convierte en PDF.
 3. **Lo medible se calcula por código.** Extracción de keywords y porcentaje de match se hacen sin IA, para que sean deterministas y confiables.
 4. **El proveedor de IA es intercambiable.** Todo pasa por una interfaz única (`LLMProvider`). Nada fuera de `providers/` conoce a un proveedor concreto.
@@ -284,10 +284,13 @@ const CoverLetter = z.object({
 ### Validación post-IA (`validate.ts`, obligatoria)
 Después de validar el esquema, comprobar:
 - Todo `experienceId` y `sourceBulletId` existe en el perfil.
-- Todo ítem de `skills` existe en el perfil (comparación normalizada).
-- Las cifras y porcentajes de cada bullet adaptado aparecen en el bullet de origen. Si aparece un número nuevo, se rechaza.
-- Las cifras del `summary` aparecen en el perfil. Las cifras de la carta aparecen en el perfil, la oferta o el borrador.
-- Las afirmaciones sin cifras (por ejemplo, “lideré equipos internacionales”) no se pueden verificar automáticamente. Queda pendiente definir procedencia estricta por frase o aceptar revisión humana; ver `docs/decisions.md`.
+- Todo ítem de `skills` existe en el perfil (comparación normalizada). Las skills **afines** van en `adjacentSkills`, con `basedOn` de una skill real del perfil y un par admitido por la tabla curada (`adjacent.ts`).
+- **Cifras (amarillo controlado):** cada cifra del bullet adaptado debe ser igual a una del bullet de origen o estar entre esa cifra y +10%. Los años nunca se estiran. Una cifra redondeada debe declararse con `stretch` (kind `number`); si no, se rechaza. Las cifras del `summary` y de la carta siguen siendo exactas.
+- **Verbos:** un verbo de responsabilidad mayor (lideré, dirigí, gestioné, fundé — y sus equivalentes en inglés) solo se acepta si ya estaba en el bullet de origen. El escalón permitido (ayudé → colaboré/contribuí) se declara con `stretch` (kind `verb`) y la persona lo confirma.
+- **Herramientas por empleo:** una skill del perfil mencionada en un bullet debe existir en esa experiencia; si no, se rechaza (no se atribuye una herramienta a un empleo donde no estaba).
+- **Rojo:** empresas, cargos, fechas, años de experiencia, títulos, certificaciones, niveles de idioma y métricas donde no había ninguna no se pueden agregar. El esquema ni siquiera permite cambiar la mayoría; lo que sí se valida se rechaza.
+- **Fidelidad:** el modo `strict` rechaza cualquier `stretch` o `adjacentSkills`; `enhanced` los permite marcados.
+- Las afirmaciones sin cifras siguen sujetas a revisión humana; el resumen y la carta no tienen trazabilidad frase por frase. Ver `docs/decisions.md`.
 - Si algo falla: reintentar hasta 2 veces enviando el error concreto a la IA; si persiste, devolver un error claro a la UI. **Nunca** guardar salida que no pase la validación.
 
 ## 9. Seguridad
@@ -409,15 +412,16 @@ Si el texto total supera la ventana de contexto del modelo, procesar por documen
 ### 12.1 Keywords (`keywords.ts`, sin IA)
 - Normalizar (minúsculas, sin acentos para comparar), tokenizar, eliminar stopwords en español e inglés, considerar n-gramas de 1 a 3 palabras.
 - Priorizar términos técnicos y frases repetidas o presentes en secciones de requisitos; ignorar relleno genérico (lista configurable).
-- Match % = keywords de la oferta presentes en el CV final / total de keywords relevantes de la oferta. Devolver también las cubiertas y las faltantes.
+- Match % = keywords de la oferta presentes en el CV final / total de keywords relevantes de la oferta. Devolver también las cubiertas y las faltantes. Se muestran dos números: **match real** (solo perfil) y **con afines** (sumando `adjacentSkills`), para no engañar a la persona.
 - Debe tener tests con las ofertas de `fixtures/` en ambos idiomas.
 
 ### 12.2 Reglas del prompt del CV (`prompts/cv.system.md`)
-- Idioma de salida: el de la oferta.
+- Idioma de salida: el de la oferta (español o inglés). También se traducen `headline` y `role` cuando corresponde.
 - Usar **únicamente** información del perfil; cada bullet adaptado indica su `sourceBulletId`.
 - Se puede reformular, reordenar, acortar y priorizar según relevancia; incorporar keywords **solo si la experiencia real las respalda**.
-- Prohibido agregar herramientas, tecnologías, cifras, cargos, fechas o logros que no estén en el perfil.
-- Lo que la oferta pide y no está en el perfil va a `keywordsMissing`.
+- **Amarillo:** redondeo de cifras de resultado hasta +10% (nunca años ni métricas nuevas), un escalón de verbo y skills afines de la tabla curada. Todo va marcado (`stretch` / `adjacentSkills`) y la persona lo confirma; nada se guarda sin confirmar.
+- **Rojo:** prohibido agregar empresas, cargos, fechas, años de experiencia, títulos, certificaciones, idiomas/niveles o una herramienta a un empleo donde no estaba.
+- Lo que la oferta pide y no está en el perfil ni como afín va a `keywordsMissing`.
 - Bullets concisos, con verbo de acción al inicio.
 
 ### 12.3 Reglas de la carta (`prompts/letter.system.md`)
@@ -506,9 +510,10 @@ Cada paso termina con algo ejecutable y verificable. No avances al siguiente sin
 
 - [x] Funciona 100% en local, sin ningún backend propio en la nube.
 - [x] Con OpenCode conectado, de una oferta pegada se obtiene CV + carta en PDF y una fila en el tracker. *(Verificado por partes: generación real, creación de postulación y tracker.)*
-- [x] El CV no contiene skills, cifras ni logros ausentes del perfil (validado por código).
-- [x] El PDF es de una columna, con texto seleccionable y nombre `Nombre_Apellido_Puesto_Empresa.pdf`.
-- [x] El match % y las keywords faltantes se calculan sin IA y se muestran en la vista previa.
+- [x] El CV no contiene skills, cifras ni logros ausentes del perfil. Los ajustes permitidos (redondeo ≤ +10%, un escalón de verbo y skills afines) van marcados y se confirman; los datos rojos se rechazan por código.
+- [x] El PDF es de una columna, con texto seleccionable y nombre `Nombre_Apellido_Puesto_CV.pdf` / `..._Carta.pdf`.
+- [x] El match % y las keywords faltantes se calculan sin IA y se muestran en la vista previa (match real y con afines).
+- [x] Una oferta pegada en inglés produce CV, titular, cargos y carta en inglés. *(Prompt desde el Paso 0; detección de puesto/empresa en inglés y tests con `backend-en.md` desde 2026-11-13.)*
 - [x] El tracker muestra estado, días transcurridos e historial, y exporta a Excel/CSV.
 - [x] El servidor rechaza requests con `Host`/`Origin` inválidos o sin sesión.
 - [x] Una oferta con prompt injection no produce acciones ni contenido fuera del perfil.

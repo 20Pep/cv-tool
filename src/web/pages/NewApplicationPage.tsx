@@ -11,6 +11,7 @@ import {
   type PreviewApplicationResponse,
   PreviewApplicationResponse as PreviewApplicationResponseSchema,
   ProfileResponse as ProfileResponseSchema,
+  type TailoredCV,
   TailoredCV as TailoredCVSchema,
 } from '../../shared/schemas';
 import { validateCoverLetter, validateTailoredCV } from '../../shared/validate';
@@ -51,6 +52,7 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
   const [saved, setSaved] = useState<ApplicationInfo | null>(null);
   const [downloading, setDownloading] = useState<'cv' | 'letter' | null>(null);
   const [copied, setCopied] = useState(false);
+  const [confirmedStretches, setConfirmedStretches] = useState<Set<string>>(new Set());
   const [generatingSeconds, setGeneratingSeconds] = useState(0);
   const [retryable, setRetryable] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,6 +130,7 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
       setPreview(result);
       setCvJson(JSON.stringify(result.tailoredCv, null, 2));
       setLetterJson(JSON.stringify(result.coverLetter, null, 2));
+      setConfirmedStretches(new Set());
       setMessage('Vista previa generada. Revisá el CV, la carta y las keywords.');
     } catch (caught) {
       // Si ya arrancó otra generación, este resultado quedó viejo.
@@ -200,19 +203,22 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
     }
 
     // Recalcula keywords y match % con el mismo código que usa el servidor.
-    const offerKeywords = extractKeywords(offerText, { limit: 20 });
-    const match = matchKeywords(offerKeywords, buildCvTextForMatch(profile, cv.data));
+    const matches = recomputeMatches(profile, offerText, cv.data);
 
     setPreview({
-      tailoredCv: { ...cv.data, keywordsUsed: match.matched, keywordsMissing: match.missing },
+      tailoredCv: {
+        ...cv.data,
+        keywordsUsed: matches.real.matched,
+        keywordsMissing: matches.real.missing,
+      },
       coverLetter: letter.data,
-      keywords: match,
+      keywords: { ...matches.real, matchPctWithAdjacent: matches.withAdjacent.matchPct },
       suggestedCompany: preview.suggestedCompany,
       suggestedPosition: preview.suggestedPosition,
     });
     setError(null);
     setMessage(
-      `Edición validada. Match recalculado: ${match.matchPct}% (${match.missing.length} keywords faltantes).`,
+      `Edición validada. Match real: ${matches.real.matchPct}% (${matches.real.missing.length} keywords faltantes).`,
     );
   };
 
@@ -262,8 +268,84 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
     }
   };
 
+  const confirmStretch = (experienceId: string, sourceBulletId: string) => {
+    setConfirmedStretches((current) =>
+      new Set(current).add(stretchKey(experienceId, sourceBulletId)),
+    );
+  };
+
+  /** Vuelve al texto exacto del bullet del perfil y borra el ajuste. */
+  const revertStretch = (experienceId: string, sourceBulletId: string) => {
+    if (preview === null || profile === null) {
+      return;
+    }
+
+    const source = profile.experience
+      .find((experience) => experience.id === experienceId)
+      ?.bullets.find((bullet) => bullet.id === sourceBulletId);
+
+    if (source === undefined) {
+      return;
+    }
+
+    const nextCv: TailoredCV = {
+      ...preview.tailoredCv,
+      experience: preview.tailoredCv.experience.map((experience) =>
+        experience.experienceId !== experienceId
+          ? experience
+          : {
+              ...experience,
+              bullets: experience.bullets.map((bullet) =>
+                bullet.sourceBulletId !== sourceBulletId
+                  ? bullet
+                  : { text: source.text, sourceBulletId: bullet.sourceBulletId },
+              ),
+            },
+      ),
+    };
+    const matches = recomputeMatches(profile, offerText, nextCv);
+
+    setPreview({
+      ...preview,
+      tailoredCv: {
+        ...nextCv,
+        keywordsUsed: matches.real.matched,
+        keywordsMissing: matches.real.missing,
+      },
+      keywords: { ...matches.real, matchPctWithAdjacent: matches.withAdjacent.matchPct },
+    });
+    setCvJson(JSON.stringify(nextCv, null, 2));
+    setConfirmedStretches((current) => {
+      const next = new Set(current);
+      next.delete(stretchKey(experienceId, sourceBulletId));
+      return next;
+    });
+    setMessage('Bullet restaurado a la versión fiel del perfil.');
+  };
+
+  const pendingStretchCount =
+    preview === null
+      ? 0
+      : preview.tailoredCv.experience.reduce(
+          (count, experience) =>
+            count +
+            experience.bullets.filter(
+              (bullet) =>
+                bullet.stretch !== undefined &&
+                !confirmedStretches.has(stretchKey(experience.experienceId, bullet.sourceBulletId)),
+            ).length,
+          0,
+        );
+
   const saveApplication = async () => {
     if (preview === null) {
+      return;
+    }
+
+    if (pendingStretchCount > 0) {
+      setError(
+        'Tenés ajustes marcados sin confirmar. Confirmalos o volvé a la versión fiel antes de guardar.',
+      );
       return;
     }
 
@@ -349,8 +431,9 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
               />
             </label>
             <p className="mt-1 text-xs text-slate-500">
-              Una sola caja para todo el contexto. cv-tool detecta empresa y puesto del texto. La
-              oferta se trata como datos, no como instrucciones.
+              Una sola caja para todo el contexto. cv-tool detecta empresa y puesto del texto. Podés
+              pegar ofertas en español o inglés: el CV y la carta salen en el idioma de la oferta.
+              La oferta se trata como datos, no como instrucciones.
             </p>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -417,10 +500,23 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
                       Calculado por código a partir de la oferta y el CV final.
                     </p>
                   </div>
-                  <span className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-                    {preview.keywords.matchPct}% de match
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                      {preview.keywords.matchPct}% real
+                    </span>
+                    {preview.keywords.matchPctWithAdjacent !== undefined &&
+                    preview.keywords.matchPctWithAdjacent > preview.keywords.matchPct ? (
+                      <span className="rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800">
+                        {preview.keywords.matchPctWithAdjacent}% con afines
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
+
+                <p className="mt-3 text-xs leading-5 text-slate-500">
+                  El match real solo cuenta lo que ya está en tu perfil. “Con afines” suma las
+                  tecnologías parecidas que se muestran aparte.
+                </p>
 
                 <div className="mt-5 grid gap-5 sm:grid-cols-2">
                   <div>
@@ -458,6 +554,29 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
                     </div>
                   </div>
                 </div>
+
+                {(preview.tailoredCv.adjacentSkills ?? []).length === 0 ? null : (
+                  <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                      Conocimientos afines ({(preview.tailoredCv.adjacentSkills ?? []).length})
+                    </h3>
+                    <p className="mt-1 text-xs leading-5 text-amber-900">
+                      Se muestran aparte: no se presentan como experiencia en un empleo. Revisá que
+                      puedas defenderlos en una entrevista.
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                      {(preview.tailoredCv.adjacentSkills ?? []).map((skill) => (
+                        <li
+                          key={`${skill.name}-${skill.basedOn}`}
+                          className="text-xs text-amber-900"
+                        >
+                          <span className="font-medium">{skill.name}</span> · afín a {skill.basedOn}{' '}
+                          — {skill.why}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </section>
 
               <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -493,10 +612,68 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
                           <p className="text-xs text-slate-500">
                             {source?.start ?? ''} – {source?.end ?? 'Actual'}
                           </p>
-                          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
-                            {experience.bullets.map((bullet) => (
-                              <li key={bullet.sourceBulletId}>{bullet.text}</li>
-                            ))}
+                          <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-700">
+                            {experience.bullets.map((bullet) => {
+                              const key = stretchKey(
+                                experience.experienceId,
+                                bullet.sourceBulletId,
+                              );
+                              const confirmed = confirmedStretches.has(key);
+
+                              return (
+                                <li key={bullet.sourceBulletId} className="flex gap-2">
+                                  <span aria-hidden="true">•</span>
+                                  <div className="flex-1">
+                                    <p>{bullet.text}</p>
+                                    {bullet.stretch === undefined ? null : (
+                                      <div
+                                        className={`mt-1 rounded-lg border p-2 text-xs ${
+                                          confirmed
+                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                                            : 'border-amber-300 bg-amber-50 text-amber-900'
+                                        }`}
+                                      >
+                                        <p className="font-medium">
+                                          Ajuste{' '}
+                                          {bullet.stretch.kind === 'verb' ? 'de verbo' : 'de cifra'}
+                                          : {bullet.stretch.note}
+                                        </p>
+                                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                                          {confirmed ? (
+                                            <span className="font-medium">Confirmado ✓</span>
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                confirmStretch(
+                                                  experience.experienceId,
+                                                  bullet.sourceBulletId,
+                                                )
+                                              }
+                                              className="rounded-md bg-amber-700 px-2 py-1 font-medium text-white transition hover:bg-amber-800"
+                                            >
+                                              Confirmar ajuste
+                                            </button>
+                                          )}
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              revertStretch(
+                                                experience.experienceId,
+                                                bullet.sourceBulletId,
+                                              )
+                                            }
+                                            className="rounded-md border border-amber-300 px-2 py-1 font-medium text-amber-900 transition hover:bg-amber-100"
+                                          >
+                                            Volver a la versión fiel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
                           </ul>
                         </div>
                       );
@@ -561,7 +738,7 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
                   <button
                     type="button"
                     onClick={() => void saveApplication()}
-                    disabled={saving || saved !== null}
+                    disabled={saving || saved !== null || pendingStretchCount > 0}
                     title="Guarda la postulación como borrador, genera los PDFs y la agrega al tracker."
                     className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                   >
@@ -577,6 +754,14 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
                         : 'Guardar en el tracker'}
                   </button>
                 </div>
+
+                {pendingStretchCount > 0 ? (
+                  <p className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                    Tenés {pendingStretchCount}{' '}
+                    {pendingStretchCount === 1 ? 'ajuste marcado' : 'ajustes marcados'} sin
+                    confirmar. Confirmalos o volvé a la versión fiel antes de guardar en el tracker.
+                  </p>
+                ) : null}
 
                 {saved === null ? null : (
                   <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-white p-4 text-sm text-emerald-900">
@@ -672,6 +857,21 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
       ) : null}
     </div>
   );
+}
+
+function stretchKey(experienceId: string, sourceBulletId: string): string {
+  return `${experienceId}:${sourceBulletId}`;
+}
+
+function recomputeMatches(profile: MasterProfile, offerText: string, cv: TailoredCV) {
+  const offerKeywords = extractKeywords(offerText, { limit: 20 });
+  return {
+    real: matchKeywords(offerKeywords, buildCvTextForMatch(profile, cv)),
+    withAdjacent: matchKeywords(
+      offerKeywords,
+      buildCvTextForMatch(profile, cv, { includeAdjacent: true }),
+    ),
+  };
 }
 
 function messageFor(error: unknown): string {

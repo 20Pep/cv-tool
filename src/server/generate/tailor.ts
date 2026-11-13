@@ -5,6 +5,7 @@ import { extractKeywords, matchKeywords } from '../../shared/keywords.js';
 import {
   type CoverLetter,
   CoverLetter as CoverLetterSchema,
+  type Fidelity,
   type MasterProfile,
   type PreviewApplicationResponse,
   type TailoredCV,
@@ -33,6 +34,8 @@ export interface TailorInput {
   model: ModelRef;
   /** Puesto objetivo detectado de la oferta, para el titular del CV. */
   targetPosition?: string;
+  /** `strict` = sin ajustes ni afines; `enhanced` = niveles verde/amarillo. */
+  fidelity?: Fidelity;
 }
 
 export interface TailorService {
@@ -50,9 +53,11 @@ export function createTailorService(factory: ProviderFactory = createProvider): 
 
       const meta = detectOfferMeta(input.offerText);
       const targetPosition = input.targetPosition ?? meta.suggestedPosition;
+      const fidelity = input.fidelity ?? 'enhanced';
 
       const tailoredCv = await generateCvWithRetry(provider, cvPrompt, {
         ...input,
+        fidelity,
         ...(targetPosition.length > 0 ? { targetPosition } : {}),
       });
       const coverLetter = await generateLetterWithRetry(provider, letterPrompt, input);
@@ -60,6 +65,10 @@ export function createTailorService(factory: ProviderFactory = createProvider): 
       const offerKeywords = extractKeywords(input.offerText, { limit: KEYWORD_LIMIT });
       const cvText = buildCvTextForMatch(input.profile, tailoredCv);
       const keywords = matchKeywords(offerKeywords, cvText);
+      const matchPctWithAdjacent = matchKeywords(
+        offerKeywords,
+        buildCvTextForMatch(input.profile, tailoredCv, { includeAdjacent: true }),
+      ).matchPct;
       return {
         tailoredCv: {
           ...tailoredCv,
@@ -67,7 +76,7 @@ export function createTailorService(factory: ProviderFactory = createProvider): 
           keywordsMissing: keywords.missing,
         },
         coverLetter,
-        keywords,
+        keywords: { ...keywords, matchPctWithAdjacent },
         ...meta,
       };
     },
@@ -118,6 +127,9 @@ function extractPositionFromSentence(offerText: string): string | undefined {
     /b[uú]squeda de\s+(?:un\/a|unx|un|una)\s+([^.!?]{3,60})/i,
     /(?:buscamos|se busca)\s+(?:un\/a|unx|un|una)\s+([^.!?]{3,60})/i,
     /(?:vacante|posici[oó]n|position)\s+(?:de|para|:)\s+([^.!?]{3,60})/i,
+    /looking for\s+(?:an?|a)\s+([^.!?]{3,60})/i,
+    /(?:hiring|seeking)\s+(?:an?|a)?\s*([^.!?]{3,60})/i,
+    /(?:role|position)\s*:\s*([^.!?]{3,60})/i,
   ];
 
   for (const pattern of patterns) {
@@ -126,6 +138,7 @@ function extractPositionFromSentence(offerText: string): string | undefined {
     if (match?.[1] !== undefined) {
       const candidate = match[1]
         .replace(/\s+(?:para|destinad[oa]s?|que)\b.*$/i, '')
+        .replace(/\s+(?:to|who|that|for|with)\b.*$/i, '')
         .replace(/[\s,;:.]+$/, '')
         .trim();
 
@@ -159,7 +172,7 @@ async function generateCvWithRetry(
   let lastError: unknown;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    const user = `${buildCvUser(input.profile, input.offerText, input.targetPosition)}${retryNote(lastError)}`;
+    const user = `${buildCvUser(input.profile, input.offerText, input.targetPosition, input.fidelity ?? 'enhanced')}${retryNote(lastError)}`;
 
     try {
       const raw = await provider.generate({
@@ -168,7 +181,7 @@ async function generateCvWithRetry(
         model: input.model,
         timeoutMs: 180_000,
       });
-      return parseCv(raw, input.profile);
+      return parseCv(raw, input.profile, input.fidelity ?? 'enhanced');
     } catch (error) {
       if (error instanceof TailorError) {
         lastError = error;
@@ -217,7 +230,7 @@ async function generateLetterWithRetry(
   );
 }
 
-function parseCv(raw: string, profile: MasterProfile): TailoredCV {
+function parseCv(raw: string, profile: MasterProfile, fidelity: Fidelity): TailoredCV {
   let value: unknown;
 
   try {
@@ -234,7 +247,7 @@ function parseCv(raw: string, profile: MasterProfile): TailoredCV {
     );
   }
 
-  const issues = validateTailoredCV(parsed.data, profile);
+  const issues = validateTailoredCV(parsed.data, profile, { fidelity });
 
   if (issues.length > 0) {
     throw new TailorError(issues.map((issue) => issue.message).join(' '));
@@ -272,7 +285,12 @@ function parseLetter(raw: string, input: TailorInput): CoverLetter {
   return parsed.data;
 }
 
-function buildCvUser(profile: MasterProfile, offerText: string, targetPosition?: string): string {
+function buildCvUser(
+  profile: MasterProfile,
+  offerText: string,
+  targetPosition: string | undefined,
+  fidelity: Fidelity,
+): string {
   return [
     'PERFIL (JSON, fuente de verdad):',
     '<perfil>',
@@ -283,6 +301,10 @@ function buildCvUser(profile: MasterProfile, offerText: string, targetPosition?:
     '<oferta>',
     offerText.trim(),
     '</oferta>',
+    '',
+    fidelity === 'strict'
+      ? 'MODO ESTRICTO: no uses `stretch` ni `adjacentSkills`. Solo reescritura fiel de lo que existe en el perfil.'
+      : 'MODO POTENCIADO: podés aplicar los ajustes amarillos (redondeo de cifras hasta +10%, un escalón de verbo y skills afines), marcándolos con `stretch` o `adjacentSkills` para que la persona los confirme.',
     ...(targetPosition === undefined
       ? []
       : [

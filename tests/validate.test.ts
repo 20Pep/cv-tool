@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { type CoverLetter, MasterProfile, type TailoredCV } from '../src/shared/schemas.js';
 import { skillsMatch } from '../src/shared/skills.js';
 import {
+  classifyNumbers,
   extractNumberTokens,
   normalizeText,
   validateCoverLetter,
@@ -147,6 +148,212 @@ describe('validateTailoredCV', () => {
     const cv = { ...validCv, summary: 'Analista de datos con 7 años de experiencia.' };
     expect(validateTailoredCV(cv, profile).map((issue) => issue.code)).toContain(
       'new-number-in-summary',
+    );
+  });
+});
+
+describe('ajustes amarillos (stretch)', () => {
+  const bullet = (text: string, stretch?: { kind: 'verb' | 'number'; note: string }) => ({
+    ...validCv,
+    experience: [
+      {
+        experienceId: 'exp-nova',
+        bullets: [
+          { text, sourceBulletId: 'nova-b1', ...(stretch === undefined ? {} : { stretch }) },
+        ],
+      },
+    ],
+  });
+
+  it('acepta un redondeo de hasta +10% si está declarado', () => {
+    const cv = bullet('Reduje el tiempo de reporte en 33%.', {
+      kind: 'number',
+      note: 'redondeo de 30 a 33',
+    });
+
+    expect(validateTailoredCV(cv, profile)).toEqual([]);
+  });
+
+  it('rechaza un redondeo de más de +10%', () => {
+    const cv = bullet('Reduje el tiempo de reporte en 34%.', {
+      kind: 'number',
+      note: 'redondeo de 30 a 34',
+    });
+
+    expect(validateTailoredCV(cv, profile).map((issue) => issue.code)).toContain(
+      'new-number-in-bullet',
+    );
+  });
+
+  it('exige declarar el redondeo', () => {
+    const cv = bullet('Reduje el tiempo de reporte en 33%.');
+    expect(validateTailoredCV(cv, profile).map((issue) => issue.code)).toContain(
+      'unmarked-stretch',
+    );
+  });
+
+  it('nunca estira un año', () => {
+    expect(classifyNumbers('en 2024', 'en 2020')).toEqual({
+      rejected: ['2024'],
+      stretched: [],
+    });
+  });
+
+  it('rechaza un verbo de responsabilidad mayor no respaldado', () => {
+    const cv = bullet('Lideré la estrategia de datos de la compañía.');
+    expect(validateTailoredCV(cv, profile).map((issue) => issue.code)).toContain(
+      'level-up-not-backed',
+    );
+  });
+
+  it('permite el verbo si el bullet de origen ya lo decía', () => {
+    const profileWithLeader = {
+      ...profile,
+      experience: profile.experience.map((experience) =>
+        experience.id === 'exp-nova'
+          ? {
+              ...experience,
+              bullets: [
+                {
+                  id: 'nova-b1',
+                  text: 'Lideré el área de datos y reduje el tiempo de reporte en 30%.',
+                },
+              ],
+            }
+          : experience,
+      ),
+    };
+    const cv = bullet('Lideré el área de datos y reduje el tiempo de reporte en 30%.');
+
+    expect(validateTailoredCV(cv, profileWithLeader).map((issue) => issue.code)).not.toContain(
+      'level-up-not-backed',
+    );
+  });
+
+  it('rechaza una herramienta atribuida a una experiencia donde no estaba', () => {
+    const cv = {
+      ...validCv,
+      experience: [
+        {
+          experienceId: 'exp-logitrans',
+          bullets: [
+            {
+              text: 'Preparé reportes de entregas con Power BI y SQL.',
+              sourceBulletId: 'logi-b2',
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(validateTailoredCV(cv, profile).map((issue) => issue.code)).toContain(
+      'tool-not-in-experience',
+    );
+  });
+
+  it('la fidelidad estricta rechaza ajustes y afines', () => {
+    const cv = {
+      ...bullet('Reduje el tiempo de reporte en 33%.', {
+        kind: 'number' as const,
+        note: 'redondeo',
+      }),
+      adjacentSkills: [{ name: 'Google Sheets', basedOn: 'Excel', why: 'planillas' }],
+    };
+
+    const codes = validateTailoredCV(cv, profile, { fidelity: 'strict' }).map(
+      (issue) => issue.code,
+    );
+    expect(codes).toContain('stretch-not-allowed');
+    expect(codes).toContain('adjacent-not-allowed');
+  });
+});
+
+describe('skills afines declaradas', () => {
+  const profileWithDb = {
+    ...profile,
+    skills: [...profile.skills, { name: 'MySQL' }],
+  };
+
+  const cvWithAdjacent = (adjacent: { name: string; basedOn: string; why: string }) => ({
+    ...validCv,
+    skills: ['SQL', 'Power BI'],
+    adjacentSkills: [adjacent],
+  });
+
+  it('acepta un par de la tabla con base real en el perfil', () => {
+    const cv = cvWithAdjacent({
+      name: 'PostgreSQL',
+      basedOn: 'MySQL',
+      why: 'Ambas son bases SQL relacionales.',
+    });
+
+    expect(validateTailoredCV(cv, profileWithDb)).toEqual([]);
+  });
+
+  it('acepta una base declarada como tecnología familiar', () => {
+    const profileWithFamiliar = { ...profile, familiarSkills: ['MySQL'] };
+    const cv = cvWithAdjacent({
+      name: 'PostgreSQL',
+      basedOn: 'MySQL',
+      why: 'Tocó MySQL en un proyecto chico.',
+    });
+
+    expect(validateTailoredCV(cv, profileWithFamiliar)).toEqual([]);
+  });
+
+  it('rechaza una base que no existe en el perfil', () => {
+    const cv = cvWithAdjacent({
+      name: 'PostgreSQL',
+      basedOn: 'Oracle',
+      why: 'Bases SQL.',
+    });
+
+    expect(validateTailoredCV(cv, profileWithDb).map((issue) => issue.code)).toContain(
+      'unknown-adjacent-base',
+    );
+  });
+
+  it('rechaza un par que no está en la tabla de afinidades', () => {
+    const cv = cvWithAdjacent({
+      name: 'Kubernetes',
+      basedOn: 'MySQL',
+      why: 'No son afines.',
+    });
+
+    expect(validateTailoredCV(cv, profileWithDb).map((issue) => issue.code)).toContain(
+      'unknown-adjacency',
+    );
+  });
+
+  it('rechaza llamar afín a algo que ya está en el perfil', () => {
+    const cv = cvWithAdjacent({ name: 'SQL', basedOn: 'MySQL', why: 'Ya la tengo.' });
+    expect(validateTailoredCV(cv, profileWithDb).map((issue) => issue.code)).toContain(
+      'redundant-adjacent',
+    );
+  });
+
+  it('no permite meter la skill afín dentro de un bullet', () => {
+    const cv = {
+      ...cvWithAdjacent({
+        name: 'PostgreSQL',
+        basedOn: 'MySQL',
+        why: 'Bases SQL.',
+      }),
+      experience: [
+        {
+          experienceId: 'exp-nova',
+          bullets: [
+            {
+              text: 'Analicé datos con SQL y PostgreSQL y reduje el tiempo de reporte en 30%.',
+              sourceBulletId: 'nova-b1',
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(validateTailoredCV(cv, profileWithDb).map((issue) => issue.code)).toContain(
+      'adjacent-in-bullet',
     );
   });
 });

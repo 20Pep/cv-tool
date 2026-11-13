@@ -48,6 +48,11 @@ export const MasterProfile = z.object({
       category: z.string().optional(),
     }),
   ),
+  /**
+   * Tecnologías que la persona tocó pero no domina. Sirven solo como base
+   * declarada para una skill afín; nunca se presentan como skills propias.
+   */
+  familiarSkills: z.array(z.string()).default([]),
   projects: z
     .array(
       z.object({
@@ -80,6 +85,34 @@ export const MasterProfile = z.object({
 
 export type MasterProfile = z.infer<typeof MasterProfile>;
 
+/**
+ * Ajuste declarado por la IA: el único tipo de mejora que puede ir más allá de
+ * una reescritura fiel. El código verifica el rango de las cifras; el verbo
+ * queda a la vista para que la persona lo confirme.
+ */
+export const StretchKind = z.enum(['verb', 'number']);
+
+export type StretchKind = z.infer<typeof StretchKind>;
+
+export const BulletStretch = z
+  .object({
+    kind: StretchKind,
+    note: z.string().min(1).max(200),
+  })
+  .strict();
+
+export type BulletStretch = z.infer<typeof BulletStretch>;
+
+export const AdjacentSkill = z
+  .object({
+    name: z.string().min(1),
+    basedOn: z.string().min(1),
+    why: z.string().min(1).max(200),
+  })
+  .strict();
+
+export type AdjacentSkill = z.infer<typeof AdjacentSkill>;
+
 export const TailoredCV = z
   .object({
     summary: z.string(),
@@ -92,11 +125,13 @@ export const TailoredCV = z
           z.object({
             text: z.string(),
             sourceBulletId: z.string(),
+            stretch: BulletStretch.optional(),
           }),
         ),
       }),
     ),
     skills: z.array(z.string()),
+    adjacentSkills: z.array(AdjacentSkill).optional(),
     keywordsUsed: z.array(z.string()),
     keywordsMissing: z.array(z.string()),
   })
@@ -123,11 +158,17 @@ export const HealthResponse = z.object({
 
 export type HealthResponse = z.infer<typeof HealthResponse>;
 
+export const Fidelity = z.enum(['strict', 'enhanced']);
+
+export type Fidelity = z.infer<typeof Fidelity>;
+
 export const LLMSettings = z
   .object({
     provider: z.string().min(1),
     model: z.string().min(1),
     variant: z.string().min(1).optional(),
+    /** `enhanced` permite ajustes marcados; `strict` exige fidelidad total. */
+    fidelity: Fidelity.optional(),
   })
   .strict();
 
@@ -137,6 +178,7 @@ export const DEFAULT_LLM_SETTINGS: LLMSettings = {
   provider: 'opencode-go',
   model: 'deepseek-v4.1-flash',
   variant: 'low',
+  fidelity: 'enhanced',
 };
 
 export const LLMModelInfo = z.object({
@@ -265,6 +307,8 @@ export const KeywordMatch = z.object({
   matched: z.array(z.string()),
   missing: z.array(z.string()),
   matchPct: z.number().min(0).max(100),
+  /** Match contando también las skills afines declaradas (más honesto que mezclarlas). */
+  matchPctWithAdjacent: z.number().min(0).max(100).optional(),
 });
 
 export type KeywordMatch = z.infer<typeof KeywordMatch>;

@@ -95,6 +95,7 @@ export function registerApplicationRoutes(
           model: settings.model,
           ...(settings.variant === undefined ? {} : { variant: settings.variant }),
         },
+        fidelity: settings.fidelity ?? 'enhanced',
       });
     } catch (error) {
       if (error instanceof TailorError) {
@@ -130,7 +131,9 @@ export function registerApplicationRoutes(
       });
     }
 
-    const cvIssues = validateTailoredCV(parsed.data.tailoredCv, stored.profile);
+    const cvIssues = validateTailoredCV(parsed.data.tailoredCv, stored.profile, {
+      fidelity: getLlmSettings(db).fidelity ?? 'enhanced',
+    });
     const letterIssues = validateCoverLetter(
       parsed.data.coverLetter,
       `${JSON.stringify(stored.profile)}\n${parsed.data.jobText}`,
@@ -214,7 +217,9 @@ export function registerApplicationRoutes(
       });
     }
 
-    const cvIssues = validateTailoredCV(parsed.data.tailoredCv, stored.profile);
+    const cvIssues = validateTailoredCV(parsed.data.tailoredCv, stored.profile, {
+      fidelity: getLlmSettings(db).fidelity ?? 'enhanced',
+    });
     const letterIssues = validateCoverLetter(
       parsed.data.coverLetter,
       `${JSON.stringify(stored.profile)}\n${parsed.data.jobText}`,

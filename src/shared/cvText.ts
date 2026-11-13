@@ -1,8 +1,16 @@
 import type { CoverLetter, MasterProfile, TailoredCV } from './schemas.js';
 
-export function buildCvTextForMatch(profile: MasterProfile, cv: TailoredCV): string {
+export function buildCvTextForMatch(
+  profile: MasterProfile,
+  cv: TailoredCV,
+  options: { includeAdjacent?: boolean } = {},
+): string {
   const experiences = new Map(profile.experience.map((experience) => [experience.id, experience]));
   const parts: string[] = [cv.headline ?? '', cv.summary, ...cv.skills];
+
+  if (options.includeAdjacent === true) {
+    parts.push(...(cv.adjacentSkills ?? []).map((skill) => skill.name));
+  }
 
   for (const tailoredExperience of cv.experience) {
     const source = experiences.get(tailoredExperience.experienceId);

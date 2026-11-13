@@ -45,6 +45,14 @@ test('flujo de postulación: previsualizar, editar, validar y descargar', async 
   await expect(page.getByRole('heading', { name: 'Vista previa del CV' })).toBeVisible();
   await expect(page.getByText('Analista de Datos con orientación a IA ·')).toBeVisible();
 
+  // El ajuste amarillo aparece marcado y bloquea el guardado hasta confirmarlo.
+  await expect(page.getByText(/Ajuste de cifra:/)).toBeVisible();
+  await expect(page.getByText(/con afines/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Guardar en el tracker' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Confirmar ajuste' }).first().click();
+  await expect(page.getByText('Confirmado ✓')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Guardar en el tracker' })).toBeEnabled();
+
   // Edición con una skill que no existe en el perfil: la UI debe rechazarla con
   // el mensaje específico antes de que el guardado falle en el servidor.
   const invalidCv: TailoredCV = {
@@ -59,7 +67,7 @@ test('flujo de postulación: previsualizar, editar, validar y descargar', async 
   // código que usa el servidor.
   await fillEditor(page, 'CV adaptado (JSON)', JSON.stringify(preview.tailoredCv, null, 2));
   await page.getByRole('button', { name: 'Validar edición' }).click();
-  await expect(page.getByText(/Edición validada\. Match recalculado: \d+%/)).toBeVisible();
+  await expect(page.getByText(/Edición validada\. Match real: \d+%/)).toBeVisible();
 
   // Descarga el CV ANTES de guardar: se genera al momento y no debe quedar
   // ninguna postulación en el tracker por esta acción.
@@ -193,13 +201,23 @@ function buildMockPreview(): PreviewApplicationResponse {
     experience: [
       {
         experienceId: 'exp-nova',
-        bullets: nova.bullets.map((bullet: { id: string; text: string }) => ({
-          text: bullet.text,
+        bullets: nova.bullets.map((bullet: { id: string; text: string }, index: number) => ({
+          text: index === 0 ? bullet.text.replace('30%', '33%') : bullet.text,
           sourceBulletId: bullet.id,
+          ...(index === 0
+            ? { stretch: { kind: 'number' as const, note: 'redondeo de 30 a 33' } }
+            : {}),
         })),
       },
     ],
     skills: ['SQL', 'Power BI', 'Excel'],
+    adjacentSkills: [
+      {
+        name: 'Looker',
+        basedOn: 'Power BI',
+        why: 'Ambas son herramientas de visualización y BI.',
+      },
+    ],
     keywordsUsed: [],
     keywordsMissing: [],
   };
@@ -207,6 +225,10 @@ function buildMockPreview(): PreviewApplicationResponse {
   const keywords = matchKeywords(
     extractKeywords(offer, { limit: 20 }),
     buildCvTextForMatch(profile, tailoredCv),
+  );
+  const keywordsWithAdjacent = matchKeywords(
+    extractKeywords(offer, { limit: 20 }),
+    buildCvTextForMatch(profile, tailoredCv, { includeAdjacent: true }),
   );
 
   const coverLetter: CoverLetter = {
@@ -225,7 +247,7 @@ function buildMockPreview(): PreviewApplicationResponse {
       keywordsMissing: keywords.missing,
     },
     coverLetter,
-    keywords,
+    keywords: { ...keywords, matchPctWithAdjacent: keywordsWithAdjacent.matchPct },
     suggestedCompany: 'Talento & Datos',
     suggestedPosition: 'Analista de Datos con orientación a IA',
   };
