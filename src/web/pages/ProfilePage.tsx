@@ -9,6 +9,7 @@ import {
   ProfileResponse as ProfileResponseSchema,
   UploadDocumentResponse,
 } from '../../shared/schemas';
+import { ProfileForm } from '../components/ProfileForm';
 import { apiDelete, apiGet, apiSend, apiUpload } from '../lib/api';
 
 const KIND_LABELS: Record<DocumentKind, string> = {
@@ -23,6 +24,7 @@ export function ProfilePage() {
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [profile, setProfile] = useState<MasterProfile | null>(null);
   const [profileText, setProfileText] = useState('');
+  const [mode, setMode] = useState<'form' | 'json'>('form');
   const [letterOutline, setLetterOutline] = useState('');
   const [version, setVersion] = useState<number | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
@@ -149,22 +151,22 @@ export function ProfilePage() {
   const save = async () => {
     let value: unknown;
 
-    try {
-      value = JSON.parse(profileText);
-    } catch {
-      setActionError('El JSON no es válido. Revisá comas, comillas y llaves.');
-      return;
-    }
-
-    const base: Record<string, unknown> =
-      typeof value === 'object' && value !== null ? { ...(value as Record<string, unknown>) } : {};
-
-    if (letterOutline.trim().length > 0) {
-      base.letterOutline = letterOutline.trim();
+    if (mode === 'form') {
+      if (profile === null) {
+        setActionError('Todavía no hay un perfil para guardar.');
+        return;
+      }
+      value = profile;
     } else {
-      delete base.letterOutline;
+      try {
+        value = JSON.parse(profileText);
+      } catch {
+        setActionError('El JSON no es válido. Revisá comas, comillas y llaves.');
+        return;
+      }
     }
 
+    const base = withLetterOutline(value, letterOutline);
     const parsed = MasterProfile.safeParse(base);
 
     if (!parsed.success) {
@@ -193,6 +195,45 @@ export function ProfilePage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const switchMode = (next: 'form' | 'json') => {
+    if (next === mode) {
+      return;
+    }
+
+    if (next === 'json') {
+      setProfileText(JSON.stringify(withLetterOutline(profile ?? {}, letterOutline), null, 2));
+      setMode('json');
+      setActionError(null);
+      return;
+    }
+
+    // Volver al formulario: validar el JSON para no perder datos inválidos.
+    let value: unknown;
+
+    try {
+      value = JSON.parse(profileText);
+    } catch {
+      setActionError('El JSON no es válido; corregilo antes de volver al formulario.');
+      return;
+    }
+
+    const parsed = MasterProfile.safeParse(withLetterOutline(value, letterOutline));
+
+    if (!parsed.success) {
+      const firstIssue = parsed.error.issues[0];
+      setActionError(
+        `El JSON no cumple el esquema${firstIssue === undefined ? '' : ` en ${firstIssue.path.join('.')}`}. Corregilo antes de volver al formulario.`,
+      );
+      return;
+    }
+
+    setProfile(parsed.data);
+    setLetterOutline(parsed.data.letterOutline ?? '');
+    setMode('form');
+    setDraft(true);
+    setActionError(null);
   };
 
   return (
@@ -342,7 +383,7 @@ export function ProfilePage() {
               <div>
                 <h2 className="text-lg font-semibold">Editor del perfil</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Revisá y corregí el JSON. Al guardar se valida el esquema completo.
+                  Revisá y corregí los datos. Al guardar se valida el esquema completo.
                 </p>
               </div>
               <div className="text-right text-xs text-slate-500">
@@ -401,45 +442,84 @@ export function ProfilePage() {
               </p>
             </label>
 
-            <textarea
-              value={profileText}
-              onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
-                setProfileText(event.target.value);
-                setDraft(true);
-              }}
-              placeholder="Todavía no hay perfil. Subí un CV y generá uno, o pegá un JSON válido."
-              spellCheck={false}
-              className="mt-4 min-h-[26rem] w-full rounded-xl border border-slate-300 bg-slate-950 p-4 font-mono text-xs leading-5 text-slate-100 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-            />
+            <div className="mt-4 inline-flex rounded-lg border border-slate-300 bg-white p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => switchMode('form')}
+                className={`rounded-md px-3 py-1.5 font-medium transition ${
+                  mode === 'form' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                Formulario
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode('json')}
+                className={`rounded-md px-3 py-1.5 font-medium transition ${
+                  mode === 'json' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                JSON avanzado
+              </button>
+            </div>
+
+            {mode === 'form' ? (
+              profile === null ? (
+                <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+                  Todavía no hay perfil. Generá uno con IA o pasá a “JSON avanzado” para pegar uno.
+                </p>
+              ) : (
+                <ProfileForm
+                  value={profile}
+                  onChange={(next) => {
+                    setProfile(next);
+                    setDraft(true);
+                  }}
+                />
+              )
+            ) : (
+              <textarea
+                value={profileText}
+                onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
+                  setProfileText(event.target.value);
+                  setDraft(true);
+                }}
+                placeholder="Todavía no hay perfil. Subí un CV y generá uno, o pegá un JSON válido."
+                spellCheck={false}
+                className="mt-4 min-h-[26rem] w-full rounded-xl border border-slate-300 bg-slate-950 p-4 font-mono text-xs leading-5 text-slate-100 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+              />
+            )}
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => void save()}
-                disabled={saving || profileText.trim().length === 0}
+                disabled={saving || (mode === 'json' && profileText.trim().length === 0)}
                 className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 {saving ? 'Guardando…' : 'Guardar perfil'}
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  try {
-                    setProfileText(JSON.stringify(JSON.parse(profileText), null, 2));
-                    setActionError(null);
-                  } catch {
-                    setActionError('El JSON no es válido; no pude formatearlo.');
-                  }
-                }}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                Formatear JSON
-              </button>
+              {mode === 'json' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      setProfileText(JSON.stringify(JSON.parse(profileText), null, 2));
+                      setActionError(null);
+                    } catch {
+                      setActionError('El JSON no es válido; no pude formatearlo.');
+                    }
+                  }}
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Formatear JSON
+                </button>
+              ) : null}
             </div>
 
             <p className="mt-3 text-xs leading-5 text-slate-500">
-              Por ahora el editor es JSON para no perder ningún campo. El formulario amigable y la
-              vista previa completa llegan en el Paso 5.
+              El formulario cubre todos los campos del perfil. “JSON avanzado” sirve para pegar o
+              editar el perfil completo de una vez.
             </p>
           </section>
 
@@ -464,6 +544,20 @@ export function ProfilePage() {
 
 function messageFor(error: unknown): string {
   return error instanceof Error ? error.message : 'Ocurrió un error inesperado.';
+}
+
+/** Copia el perfil y sincroniza el esquema de carta editado aparte. */
+function withLetterOutline(value: unknown, letterOutline: string): Record<string, unknown> {
+  const base: Record<string, unknown> =
+    typeof value === 'object' && value !== null ? { ...(value as Record<string, unknown>) } : {};
+
+  if (letterOutline.trim().length > 0) {
+    base.letterOutline = letterOutline.trim();
+  } else {
+    delete base.letterOutline;
+  }
+
+  return base;
 }
 
 function formatDate(value: string): string {

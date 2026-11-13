@@ -24,6 +24,7 @@ export async function apiSend<T>(
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   body: unknown,
   schema: ZodType<T>,
+  signal?: AbortSignal,
 ): Promise<T> {
   const response = await fetch(path, {
     method,
@@ -32,9 +33,18 @@ export async function apiSend<T>(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
+    ...(signal === undefined ? {} : { signal }),
   });
 
   return parseResponse(response, schema);
+}
+
+/** true cuando la request se cortó a propósito (botón Cancelar o desmontaje). */
+export function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
 }
 
 export async function apiUpload<T>(path: string, body: FormData, schema: ZodType<T>): Promise<T> {
@@ -64,11 +74,12 @@ export async function apiDownload(
   path: string,
   body: unknown,
   fallbackName: string,
+  accept = 'application/pdf',
 ): Promise<string> {
   const response = await fetch(path, {
     method: 'POST',
     headers: {
-      Accept: 'application/pdf',
+      Accept: accept,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),

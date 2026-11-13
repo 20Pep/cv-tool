@@ -448,11 +448,14 @@ Todas requieren la cookie de sesión.
 | POST | `/api/profile/generate` | Generar perfil desde documentos |
 | GET/PUT | `/api/profile` | Leer y guardar perfil maestro |
 | POST | `/api/applications/preview` | Generar CV + carta (sin guardar) |
+| POST | `/api/applications/render` | Descargar PDF sin guardar la postulación |
 | POST | `/api/applications` | Confirmar, renderizar PDFs y guardar |
 | GET | `/api/applications` | Listar (filtros por estado y texto) |
-| GET/PATCH | `/api/applications/:id` | Ver y actualizar (estado, notas) |
+| GET/PATCH/DELETE | `/api/applications/:id` | Ver, actualizar o eliminar |
 | GET | `/api/applications/:id/files/:kind` | Descargar CV o carta |
-| GET | `/api/export/xlsx` | Exportar tracker |
+| GET/POST | `/api/export/xlsx` | Exportar tracker (POST con los ids filtrados) |
+| GET | `/api/system` | Rutas de datos y versión |
+| GET | `/api/backup` | Copia de seguridad de SQLite |
 
 ## 14. Plan de trabajo (en este orden)
 

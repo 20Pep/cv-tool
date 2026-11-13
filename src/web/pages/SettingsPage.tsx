@@ -5,6 +5,8 @@ import {
   type ProvidersResponse,
   ProvidersResponse as ProvidersResponseSchema,
   SettingsResponse,
+  type SystemInfoResponse,
+  SystemInfoResponse as SystemInfoResponseSchema,
   type TestConnectionResponse,
   TestConnectionResponse as TestConnectionResponseSchema,
 } from '../../shared/schemas';
@@ -12,6 +14,7 @@ import { apiGet, apiSend } from '../lib/api';
 
 export function SettingsPage() {
   const [providers, setProviders] = useState<ProvidersResponse | null>(null);
+  const [system, setSystem] = useState<SystemInfoResponse | null>(null);
   const [selected, setSelected] = useState<LLMSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -29,8 +32,12 @@ export function SettingsPage() {
     setSaveError(null);
 
     try {
-      const data = await apiGet('/api/providers', ProvidersResponseSchema);
+      const [data, systemData] = await Promise.all([
+        apiGet('/api/providers', ProvidersResponseSchema),
+        apiGet('/api/system', SystemInfoResponseSchema).catch(() => null),
+      ]);
       setProviders(data);
+      setSystem(systemData);
 
       const savedModel = data.models.find(
         (model) => model.provider === data.current.provider && model.model === data.current.model,
@@ -399,6 +406,39 @@ export function SettingsPage() {
                 {saveError}
               </p>
             )}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold">Datos y copia de seguridad</h2>
+            <p className="mt-1 max-w-2xl text-sm text-slate-600">
+              Tu perfil, las postulaciones y los ajustes viven en esta computadora. Una copia te
+              permite recuperarlos si cambiás de equipo o reinstalás.
+            </p>
+
+            {system === null ? null : (
+              <dl className="mt-4 rounded-xl bg-slate-50 p-4 text-xs">
+                <dt className="font-medium text-slate-900">Carpeta de datos</dt>
+                <dd className="mt-1 break-all font-mono text-[11px] leading-5 text-slate-700">
+                  {system.dataDir}
+                </dd>
+                <dt className="mt-3 font-medium text-slate-900">Base de datos</dt>
+                <dd className="mt-1 break-all font-mono text-[11px] leading-5 text-slate-700">
+                  {system.dbPath}
+                </dd>
+              </dl>
+            )}
+
+            <a
+              href="/api/backup"
+              download
+              className="mt-4 inline-block rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Descargar copia de seguridad
+            </a>
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              Incluye perfil, postulaciones, notas e historial. Los PDFs no se copian: se pueden
+              volver a generar desde cada postulación guardada.
+            </p>
           </section>
 
           <p className="text-xs leading-5 text-slate-500">

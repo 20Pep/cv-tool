@@ -84,6 +84,70 @@ test('flujo de postulación: previsualizar, editar, validar y descargar', async 
   // Después de guardar no se repiten las descargas: solo el acceso al tracker.
   await expect(page.getByRole('link', { name: 'Ir al tracker' })).toBeVisible();
   await expect(page.getByRole('link', { name: /Descargar/ })).toHaveCount(0);
+
+  await page.getByRole('link', { name: 'Ir al tracker' }).click();
+  await expect(page.getByRole('heading', { name: 'Tracker', level: 1 })).toBeVisible();
+  await expect(page.getByText(/1 postulación en la lista/)).toBeVisible();
+
+  // El export respeta los filtros activos (en este caso, 1 postulación).
+  const exportDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: /Exportar Excel \(1\)/ }).click();
+  expect((await exportDownload).suggestedFilename()).toBe('cv-tool-postulaciones.xlsx');
+  await expect(page.getByText(/Excel exportado/)).toBeVisible();
+
+  // Rango personalizado: una fecha futura deja la lista vacía.
+  await page.getByLabel('Fecha de alta').selectOption('custom');
+  await page.getByLabel('Desde').fill('2030-01-01');
+  await expect(page.getByText(/0 postulaciones en la lista/)).toBeVisible();
+  await page.getByLabel('Fecha de alta').selectOption('month');
+  await expect(page.getByText(/1 postulación en la lista/)).toBeVisible();
+});
+
+test('generación: cancelar conserva la oferta para reintentar', async ({ page }) => {
+  await page.context().addCookies([
+    {
+      name: 'cvtool_session',
+      value: 'e2e-session',
+      domain: '127.0.0.1',
+      path: '/',
+    },
+  ]);
+
+  await page.goto('/');
+  const savedProfile = await page.request.put('/api/profile', { data: { profile } });
+  expect(savedProfile.ok()).toBe(true);
+  await page.reload();
+
+  await expect(page.getByRole('heading', { name: 'Pegá la oferta' })).toBeVisible();
+  const offerText = offer.slice(0, 200);
+  await page.getByPlaceholder(/Pegá acá el texto completo de la oferta/).fill(offerText);
+
+  // La respuesta de la IA queda retenida hasta que el test la libera.
+  let release: (() => void) | undefined;
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const preview = buildMockPreview();
+  await page.route('**/api/applications/preview', async (route) => {
+    await released;
+    await route.fulfill({ json: preview }).catch(() => undefined);
+  });
+
+  await page.getByRole('button', { name: 'Generar vista previa' }).click();
+  await expect(page.getByRole('button', { name: 'Cancelar' })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(page.getByText(/Generación cancelada/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Cancelar' })).toHaveCount(0);
+
+  release?.();
+  await page.waitForTimeout(100);
+  await page.unroute('**/api/applications/preview');
+
+  // La oferta quedó guardada en el navegador: recargar no la pierde.
+  await page.reload();
+  await expect(page.getByPlaceholder(/Pegá acá el texto completo de la oferta/)).toHaveValue(
+    offerText,
+  );
 });
 
 test('tracker: elimina una postulación con confirmación', async ({ page }) => {

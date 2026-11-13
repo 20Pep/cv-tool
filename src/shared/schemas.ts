@@ -321,6 +321,23 @@ export const RenderPdfRequest = CreateApplicationRequest.extend({
 
 export type RenderPdfRequest = z.infer<typeof RenderPdfRequest>;
 
+export const ExportApplicationsRequest = z
+  .object({
+    ids: z.array(z.number().int().positive()).max(5000).optional(),
+  })
+  .strict();
+
+export type ExportApplicationsRequest = z.infer<typeof ExportApplicationsRequest>;
+
+export const SystemInfoResponse = z.object({
+  dataDir: z.string(),
+  dbPath: z.string(),
+  version: z.string(),
+  isDev: z.boolean(),
+});
+
+export type SystemInfoResponse = z.infer<typeof SystemInfoResponse>;
+
 export const ApplicationInfo = z.object({
   id: z.number().int().positive(),
   company: z.string(),

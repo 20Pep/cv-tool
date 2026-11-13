@@ -1,5 +1,30 @@
 # Progreso
 
+## Mejoras de uso diario: cancelar, export filtrado, backup, rango y formulario (2026-11-13)
+
+- [x] **Cancelar y reintentar la generación.** `AbortController` en la
+      petición de preview; botón "Cancelar" mientras genera y "Reintentar
+      generación" en el error. La oferta se guarda en `localStorage`
+      (`cv-tool:offer-draft`) y sobrevive a un recargado; se borra al guardar
+      la postulación. El servidor sigue procesando si se corta la conexión
+      (documentado en D-038).
+- [x] **Exportar Excel respeta los filtros.** Nuevo `POST /api/export/xlsx`
+      con los ids filtrados; botón "Exportar Excel (N)" deshabilitado si no
+      hay filas. El `GET` sigue exportando todo.
+- [x] **Copia de seguridad.** `GET /api/system` (rutas + versión) y
+      `GET /api/backup` (SQLite consistente con `db.backup()`); sección
+      "Datos y copia de seguridad" en Ajustes.
+- [x] **Rango de fechas personalizado** en el tracker ("Personalizado" con
+      desde/hasta). `isWithinDates` / `parseDateInput` / `endOfDateInput` en
+      `src/shared/dates.ts`, con tests.
+- [x] **Editor de perfil con formulario.** `src/web/components/ProfileForm.tsx`
+      cubre todos los campos (links, experiencia con bullets, educación,
+      skills, proyectos, certificaciones, idiomas), conserva ids y deja
+      "JSON avanzado" como alternativa validada.
+- [x] 152 tests + 4 E2E pasan (`typecheck` y `lint` limpios). El E2E cubre el
+      formulario de perfil, el export filtrado, el rango personalizado y
+      cancelar la generación conservando la oferta.
+
 ## Tracker: fecha de alta, filtro de fecha y enviados (2026-11-13)
 
 - [x] Columna nueva **Alta** con la fecha de creación de cada postulación.

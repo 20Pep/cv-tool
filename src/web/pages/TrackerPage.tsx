@@ -7,7 +7,12 @@ import {
 import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { z } from 'zod';
-import { type DateRange, daysSince, isWithinPeriod } from '../../shared/dates';
+import {
+  type DateFilterOption,
+  daysSince,
+  isWithinDates,
+  isWithinPeriod,
+} from '../../shared/dates';
 import {
   type ApplicationDetailResponse,
   ApplicationDetailResponse as ApplicationDetailResponseSchema,
@@ -17,7 +22,7 @@ import {
   type ApplicationStatus as ApplicationStatusType,
   ApplicationsResponse as ApplicationsResponseSchema,
 } from '../../shared/schemas';
-import { apiDelete, apiGet, apiSend } from '../lib/api';
+import { apiDelete, apiDownload, apiGet, apiSend } from '../lib/api';
 
 const STATUS_LABELS: Record<ApplicationStatusType, string> = {
   draft: 'Borrador',
@@ -47,8 +52,11 @@ export function TrackerPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | ApplicationStatusType>('all');
-  const [dateFilter, setDateFilter] = useState<DateRange>('month');
+  const [dateFilter, setDateFilter] = useState<DateFilterOption>('month');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [search, setSearch] = useState('');
+  const [exporting, setExporting] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
   const [detail, setDetail] = useState<ApplicationDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -178,14 +186,37 @@ export function TrackerPage() {
 
     return applications.filter((application) => {
       const statusMatches = statusFilter === 'all' || application.status === statusFilter;
-      const dateMatches = isWithinPeriod(application.createdAt, dateFilter, now);
+      const dateMatches =
+        dateFilter === 'custom'
+          ? isWithinDates(application.createdAt, fromDate, toDate)
+          : isWithinPeriod(application.createdAt, dateFilter, now);
       const textMatches =
         query.length === 0 ||
         `${application.company} ${application.position}`.toLowerCase().includes(query);
 
       return statusMatches && dateMatches && textMatches;
     });
-  }, [applications, search, statusFilter, dateFilter]);
+  }, [applications, search, statusFilter, dateFilter, fromDate, toDate]);
+
+  const exportExcel = async () => {
+    setExporting(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const filename = await apiDownload(
+        '/api/export/xlsx',
+        { ids: filtered.map((application) => application.id) },
+        'cv-tool-postulaciones.xlsx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      setMessage(`Excel exportado: ${filename}`);
+    } catch (caught) {
+      setError(messageFor(caught));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // "CVs enviados": postulaciones con fecha de envío, sobre todo el tracker
   // (no cambia con el filtro de fecha).
@@ -395,15 +426,49 @@ export function TrackerPage() {
               <select
                 value={dateFilter}
                 onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                  setDateFilter(event.target.value as DateRange)
+                  setDateFilter(event.target.value as DateFilterOption)
                 }
                 className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
               >
                 <option value="month">Este mes</option>
                 <option value="year">Este año</option>
                 <option value="all">Todo</option>
+                <option value="custom">Personalizado</option>
               </select>
             </label>
+
+            {dateFilter === 'custom' ? (
+              <>
+                <label className="block">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Desde
+                  </span>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    max={toDate.length === 0 ? undefined : toDate}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setFromDate(event.target.value)
+                    }
+                    className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Hasta
+                  </span>
+                  <input
+                    type="date"
+                    value={toDate}
+                    min={fromDate.length === 0 ? undefined : fromDate}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setToDate(event.target.value)
+                    }
+                    className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+                  />
+                </label>
+              </>
+            ) : null}
 
             <label className="block">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -419,12 +484,15 @@ export function TrackerPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <a
-              href="/api/export/xlsx"
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            <button
+              type="button"
+              onClick={() => void exportExcel()}
+              disabled={exporting || filtered.length === 0}
+              title="Exporta solo las postulaciones que coinciden con los filtros activos."
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Exportar Excel
-            </a>
+              {exporting ? 'Exportando…' : `Exportar Excel (${filtered.length})`}
+            </button>
             <Link
               to="/postulaciones/nueva"
               className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"

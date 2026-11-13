@@ -43,4 +43,22 @@ test('flujo base de la interfaz', async ({ page }) => {
   await page.getByRole('link', { name: 'Tracker', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Tracker' })).toBeVisible();
   await expect(page.getByText('Todavía no hay postulaciones.')).toBeVisible();
+
+  // El editor amigable arranca en modo formulario y guarda cambios reales.
+  await page.getByRole('link', { name: 'Perfil', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Tu perfil' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Formulario' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'JSON avanzado' })).toBeVisible();
+
+  await page.getByLabel('Nombre completo').fill('Ana Pérez Gómez');
+  await page.getByRole('button', { name: 'Guardar perfil' }).click();
+  await expect(page.getByText('Perfil guardado.')).toBeVisible();
+
+  const updated = await page.request.get('/api/profile');
+  expect((await updated.json()).profile.basics.fullName).toBe('Ana Pérez Gómez');
+
+  // El modo JSON sigue disponible como alternativa avanzada.
+  await page.getByRole('button', { name: 'JSON avanzado' }).click();
+  await expect(page.getByText('Formatear JSON')).toBeVisible();
+  await expect(page.locator('textarea[spellcheck="false"]')).toHaveValue(/Ana Pérez Gómez/);
 });

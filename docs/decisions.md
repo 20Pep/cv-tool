@@ -738,6 +738,72 @@ previa y explotaba al guardar con un mensaje genérico sin campo ni detalle.
 - El launch token es de un solo uso, así que el spec arma la sesión con la
   cookie `cvtool_session` del entorno de pruebas en vez de `?t=…`.
 
+## 2026-11-13 — Mejoras de uso diario
+
+### D-038 — Cancelar la generación y conservar la oferta
+
+- `apiSend` acepta un `AbortSignal`; la pantalla de nueva postulación crea un
+  `AbortController` por generación. "Cancelar" corta la espera del cliente y
+  muestra "Generación cancelada"; si se vuelve a generar, la respuesta vieja
+  se descarta (comparación de controlador) para que no pise el estado nuevo.
+- El servidor no cancela el trabajo de la IA al cerrarse la conexión: la
+  request sigue hasta terminar. Es aceptable en local y evita matar procesos
+  del proveedor; se documenta para no prometer una cancelación del cómputo.
+- La oferta se guarda en `localStorage` (`cv-tool:offer-draft`) mientras se
+  escribe, así un recargado o un cierre accidental no la pierden. Se borra al
+  guardar la postulación en el tracker. No se guarda ningún otro dato.
+- Si la generación falla, el mensaje de error ofrece "Reintentar generación"
+  sin tener que volver a pegar nada.
+
+### D-039 — El Excel exporta lo que se ve
+
+- `POST /api/export/xlsx` recibe `{ ids }` con las postulaciones ya filtradas
+  por la interfaz (estado, búsqueda y fecha). El cliente es quien conoce el
+  huso horario y el rango local, así que el servidor no reinterpreta fechas.
+- El `GET /api/export/xlsx` se mantiene para exportar todo el tracker sin
+  filtros (compatibilidad y uso directo).
+- El botón muestra la cantidad ("Exportar Excel (N)") y se deshabilita si la
+  lista filtrada está vacía.
+
+### D-040 — Copia de seguridad y ruta de datos
+
+- `GET /api/system` expone `dataDir`, `dbPath` y versión para mostrarlos en
+  Ajustes. Solo responde en `127.0.0.1` y exige cookie de sesión como toda
+  `/api`.
+- `GET /api/backup` usa `db.backup()` de `better-sqlite3` sobre un archivo
+  temporal y lo envía como `cv-tool-backup-AAAA-MM-DD.sqlite`. Incluye WAL de
+  forma consistente y no frena la app. Los PDFs no se copian: se regeneran
+  desde cada postulación.
+- No se agregó ningún paquete: `node:fs/promises`, `node:os` y la API de
+  SQLite ya presentes alcanzan.
+
+### D-041 — Rango de fechas personalizado en el tracker
+
+- Además de Este mes / Este año / Todo, el filtro "Fecha de alta" tiene
+  "Personalizado" con dos `<input type="date">` (desde/hasta).
+- `isWithinDates` compara contra el inicio y el fin del día **local**
+  (`23:59:59.999`), igual que `isWithinPeriod`. Los extremos vacíos no
+  filtran; una fecha inválida queda afuera cuando hay algún extremo definido.
+- Los tests de fechas usan horas del mediodía para no depender del huso.
+
+### D-042 — Editor de perfil con formulario
+
+- `ProfileForm` (en `src/web/components/`) cubre todos los campos del esquema:
+  datos y links, resumen, experiencia con bullets, educación, skills,
+  proyectos con tecnologías, certificaciones e idiomas. Agregar/eliminar
+  filas es inmediato.
+- Los ids de experiencias, bullets y proyectos se conservan; los nuevos se
+  generan en el cliente (`exp-…`, `bullet-…`, `project-…`). Las experiencias
+  y bullets existentes mantienen su id porque la validación de la IA los
+  referencia por id.
+- El modo "JSON avanzado" se conserva: al volver al formulario se valida el
+  JSON con Zod y los errores se muestran sin perder lo editado. El esquema de
+  carta sigue en su textarea y se sincroniza con el perfil al guardar.
+- Las listas sin id en el esquema (links, estudios, skills, certificaciones,
+  idiomas) usan el índice como clave de React; se desactiva esa regla de
+  Biome en ese archivo con una justificación, porque no hay identidad estable
+  mejor disponible.
+
 ## [VERIFICAR] de PROJECT.md §10.2
 
 | Punto                                          | Resultado                                                                                                                                                                  |

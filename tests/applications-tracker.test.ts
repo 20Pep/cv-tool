@@ -1,3 +1,4 @@
+import ExcelJS from 'exceljs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createApplication } from '../src/server/applications.js';
 import {
@@ -158,5 +159,47 @@ describe('tracker de postulaciones', () => {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     expect(response.rawPayload.subarray(0, 2).toString()).toBe('PK');
+  });
+
+  it('exporta solo las postulaciones filtradas que manda la interfaz', async () => {
+    test = await createTestContext();
+    seedApplication();
+    const other = createApplication(test.context.db, {
+      company: 'Otra Empresa',
+      position: 'Backend Engineer',
+      jobText: 'Buscamos Backend Engineer con Node.js.',
+      matchPct: 40,
+      missingKeywords: [],
+      cvPath: 'cv2.pdf',
+      letterPath: 'letter2.pdf',
+      tailoredJson: '{}',
+    });
+
+    const response = await test.context.app.inject({
+      method: 'POST',
+      url: '/api/export/xlsx',
+      headers: authHeaders(),
+      payload: { ids: [other.id] },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(response.rawPayload as unknown as ArrayBuffer);
+    const sheet = workbook.getWorksheet('Postulaciones');
+    expect(sheet?.rowCount).toBe(2);
+    expect(sheet?.getRow(2).getCell(1).value).toBe('Otra Empresa');
+  });
+
+  it('rechaza ids de exportación inválidos', async () => {
+    test = await createTestContext();
+
+    const response = await test.context.app.inject({
+      method: 'POST',
+      url: '/api/export/xlsx',
+      headers: authHeaders(),
+      payload: { ids: ['uno'] },
+    });
+
+    expect(response.statusCode).toBe(400);
   });
 });

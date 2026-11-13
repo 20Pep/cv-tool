@@ -13,6 +13,7 @@ import { registerApplicationRoutes } from './routes/applications.js';
 import { registerDocumentRoutes } from './routes/documents.js';
 import { registerProfileRoutes } from './routes/profile.js';
 import { registerProviderRoutes } from './routes/providers.js';
+import { registerSystemRoutes } from './routes/system.js';
 import {
   errorPage,
   hasValidSessionCookie,
@@ -87,6 +88,7 @@ export async function buildApp(
   registerDocumentRoutes(app, db, config);
   registerProfileRoutes(app, db, profileBuilder);
   registerApplicationRoutes(app, db, tailorService, config);
+  registerSystemRoutes(app, db, config);
 
   if (config.isDev) {
     app.get('/', async () => ({

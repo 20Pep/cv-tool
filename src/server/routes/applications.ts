@@ -1,12 +1,13 @@
 import { createReadStream, existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { extractKeywords, matchKeywords } from '../../shared/keywords.js';
 import { detectLanguage } from '../../shared/language.js';
 import {
   ApplicationStatus,
   CreateApplicationRequest,
+  ExportApplicationsRequest,
   PreviewApplicationRequest,
   RenderPdfRequest,
   UpdateApplicationRequest,
@@ -260,10 +261,28 @@ export function registerApplicationRoutes(
   app.get('/api/export/xlsx', async (_request, reply) => {
     const buffer = await buildApplicationsWorkbook(listApplications(db));
 
-    return reply
-      .type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      .header('Content-Disposition', 'attachment; filename="cv-tool-postulaciones.xlsx"')
-      .send(buffer);
+    return sendWorkbook(reply, buffer);
+  });
+
+  // Exporta solo lo que la persona ve: el cliente manda los ids ya filtrados
+  // (estado, búsqueda y rango de fechas) y el servidor no reinterpreta fechas.
+  app.post('/api/export/xlsx', async (request, reply) => {
+    const parsed = ExportApplicationsRequest.safeParse(request.body ?? {});
+
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'Los filtros de exportación no son válidos.' });
+    }
+
+    const applications = listApplications(db);
+    const ids = parsed.data.ids;
+    const selected = ids === undefined ? null : new Set(ids);
+
+    return sendWorkbook(
+      reply,
+      await buildApplicationsWorkbook(
+        selected === null ? applications : applications.filter((item) => selected.has(item.id)),
+      ),
+    );
   });
 
   app.get('/api/applications/:id', async (request, reply) => {
@@ -370,4 +389,11 @@ export function registerApplicationRoutes(
       .header('Content-Disposition', `attachment; filename="${filename}"`)
       .send(createReadStream(filePath));
   });
+}
+
+function sendWorkbook(reply: FastifyReply, buffer: Buffer) {
+  return reply
+    .type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    .header('Content-Disposition', 'attachment; filename="cv-tool-postulaciones.xlsx"')
+    .send(buffer);
 }

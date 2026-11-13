@@ -1,4 +1,4 @@
-import { type ChangeEvent, useCallback, useEffect, useState } from 'react';
+import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import type { z } from 'zod';
 import { buildCvTextForMatch, exportLetterText } from '../../shared/cvText';
@@ -14,11 +14,34 @@ import {
   TailoredCV as TailoredCVSchema,
 } from '../../shared/schemas';
 import { validateCoverLetter, validateTailoredCV } from '../../shared/validate';
-import { apiDownload, apiGet, apiSend } from '../lib/api';
+import { apiDownload, apiGet, apiSend, isAbortError } from '../lib/api';
+
+const OFFER_DRAFT_KEY = 'cv-tool:offer-draft';
+
+function readOfferDraft(): string {
+  try {
+    return window.localStorage.getItem(OFFER_DRAFT_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function writeOfferDraft(value: string): void {
+  try {
+    if (value.trim().length === 0) {
+      window.localStorage.removeItem(OFFER_DRAFT_KEY);
+      return;
+    }
+
+    window.localStorage.setItem(OFFER_DRAFT_KEY, value);
+  } catch {
+    // El navegador puede bloquear localStorage; la oferta sigue en memoria.
+  }
+}
 
 export function NewApplicationPage({ initialProfile }: { initialProfile?: MasterProfile } = {}) {
   const [profile, setProfile] = useState<MasterProfile | null>(initialProfile ?? null);
-  const [offerText, setOfferText] = useState('');
+  const [offerText, setOfferText] = useState(readOfferDraft);
   const [preview, setPreview] = useState<PreviewApplicationResponse | null>(null);
   const [cvJson, setCvJson] = useState('');
   const [letterJson, setLetterJson] = useState('');
@@ -29,8 +52,10 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
   const [downloading, setDownloading] = useState<'cv' | 'letter' | null>(null);
   const [copied, setCopied] = useState(false);
   const [generatingSeconds, setGeneratingSeconds] = useState(0);
+  const [retryable, setRetryable] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const generationAbort = useRef<AbortController | null>(null);
 
   const loadProfile = useCallback(async () => {
     setLoadingProfile(true);
@@ -52,6 +77,20 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
     }
   }, [initialProfile, loadProfile]);
 
+  // La oferta pegada sobrevive a un recargado de la página: si algo falla o
+  // cancelás, no hay que volver a buscarla y pegarla.
+  useEffect(() => {
+    writeOfferDraft(offerText);
+  }, [offerText]);
+
+  // Si se sale de la pantalla mientras genera, cortamos la espera.
+  useEffect(
+    () => () => {
+      generationAbort.current?.abort();
+    },
+    [],
+  );
+
   // Segundos transcurridos mientras se genera, para el indicador de progreso.
   useEffect(() => {
     if (!generating) {
@@ -67,7 +106,12 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
   }, [generating]);
 
   const generate = async () => {
+    generationAbort.current?.abort();
+    const controller = new AbortController();
+    generationAbort.current = controller;
+
     setGenerating(true);
+    setRetryable(false);
     setSaved(null);
     setError(null);
     setMessage(null);
@@ -78,6 +122,7 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
         'POST',
         { offerText },
         PreviewApplicationResponseSchema,
+        controller.signal,
       );
 
       setPreview(result);
@@ -85,10 +130,27 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
       setLetterJson(JSON.stringify(result.coverLetter, null, 2));
       setMessage('Vista previa generada. Revisá el CV, la carta y las keywords.');
     } catch (caught) {
-      setError(messageFor(caught));
+      // Si ya arrancó otra generación, este resultado quedó viejo.
+      if (generationAbort.current !== controller) {
+        return;
+      }
+
+      if (isAbortError(caught)) {
+        setMessage('Generación cancelada. La oferta quedó guardada para que reintentes.');
+      } else {
+        setError(messageFor(caught));
+        setRetryable(true);
+      }
     } finally {
-      setGenerating(false);
+      if (generationAbort.current === controller) {
+        generationAbort.current = null;
+        setGenerating(false);
+      }
     }
+  };
+
+  const cancelGeneration = () => {
+    generationAbort.current?.abort();
   };
 
   const validateEdits = () => {
@@ -223,6 +285,7 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
 
       setSaved(result.application);
       setMessage('Postulación guardada como borrador. Los PDFs están listos.');
+      writeOfferDraft('');
     } catch (caught) {
       setError(messageFor(caught));
     } finally {
@@ -307,8 +370,18 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
                   'Generar vista previa'
                 )}
               </button>
+              {generating ? (
+                <button
+                  type="button"
+                  onClick={cancelGeneration}
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+              ) : null}
               <span className="text-xs text-slate-500">
-                Usa el modelo elegido en Ajustes. Puede tardar uno o dos minutos.
+                Usa el modelo elegido en Ajustes. Puede tardar uno o dos minutos. Si cancelás, la
+                oferta queda guardada.
               </span>
             </div>
 
@@ -581,9 +654,18 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
               </p>
             )}
             {error === null ? null : (
-              <p className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
-                {error}
-              </p>
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+                <p>{error}</p>
+                {retryable && !generating ? (
+                  <button
+                    type="button"
+                    onClick={() => void generate()}
+                    className="mt-3 rounded-lg bg-rose-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-800"
+                  >
+                    Reintentar generación
+                  </button>
+                ) : null}
+              </div>
             )}
           </div>
         </div>
