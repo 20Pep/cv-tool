@@ -1,5 +1,17 @@
 # Progreso
 
+## Tracker: fecha de alta, filtro de fecha y enviados (2026-11-13)
+
+- [x] Columna nueva **Alta** con la fecha de creación de cada postulación.
+- [x] Filtro **Fecha de alta**: "Este mes" (default) / "Este año" / "Todo".
+      Función pura `isWithinPeriod` / `startOfPeriod` en `src/shared/dates.ts`
+      con tests (comparación por hora local; los tests evitan límites de
+      medianoche porque el huso horario los vuelve ambiguos).
+- [x] Contadores arriba de la tabla: **N postulaciones en la lista**
+      (según filtros activos) y **M CVs enviados** (todas las postulaciones con
+      fecha de envío, independiente del filtro de fecha).
+- [x] 142 tests + 3 E2E pasan.
+
 ## Portapapeles con la carta (2026-11-13)
 
 - [x] "Copiar al portapapeles" ahora copia **la carta** (no el CV): nuevo

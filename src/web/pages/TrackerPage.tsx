@@ -7,7 +7,7 @@ import {
 import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { z } from 'zod';
-import { daysSince } from '../../shared/dates';
+import { type DateRange, daysSince, isWithinPeriod } from '../../shared/dates';
 import {
   type ApplicationDetailResponse,
   ApplicationDetailResponse as ApplicationDetailResponseSchema,
@@ -47,6 +47,7 @@ export function TrackerPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | ApplicationStatusType>('all');
+  const [dateFilter, setDateFilter] = useState<DateRange>('month');
   const [search, setSearch] = useState('');
   const [savingId, setSavingId] = useState<number | null>(null);
   const [detail, setDetail] = useState<ApplicationDetailResponse | null>(null);
@@ -173,16 +174,25 @@ export function TrackerPage() {
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const now = new Date();
 
     return applications.filter((application) => {
       const statusMatches = statusFilter === 'all' || application.status === statusFilter;
+      const dateMatches = isWithinPeriod(application.createdAt, dateFilter, now);
       const textMatches =
         query.length === 0 ||
         `${application.company} ${application.position}`.toLowerCase().includes(query);
 
-      return statusMatches && textMatches;
+      return statusMatches && dateMatches && textMatches;
     });
-  }, [applications, search, statusFilter]);
+  }, [applications, search, statusFilter, dateFilter]);
+
+  // "CVs enviados": postulaciones con fecha de envío, sobre todo el tracker
+  // (no cambia con el filtro de fecha).
+  const sentCount = useMemo(
+    () => applications.filter((application) => application.sentAt !== null).length,
+    [applications],
+  );
 
   const columnHelper = useMemo(() => createColumnHelper<ApplicationInfo>(), []);
   const columns = useMemo(
@@ -226,6 +236,11 @@ export function TrackerPage() {
           const application = info.row.original;
           return application.sentAt === null ? '—' : formatDate(application.sentAt);
         },
+      }),
+      columnHelper.display({
+        id: 'createdAt',
+        header: 'Alta',
+        cell: (info) => formatDate(info.row.original.createdAt),
       }),
       columnHelper.display({
         id: 'days',
@@ -375,6 +390,23 @@ export function TrackerPage() {
 
             <label className="block">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Fecha de alta
+              </span>
+              <select
+                value={dateFilter}
+                onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+                  setDateFilter(event.target.value as DateRange)
+                }
+                className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+              >
+                <option value="month">Este mes</option>
+                <option value="year">Este año</option>
+                <option value="all">Todo</option>
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
                 Buscar
               </span>
               <input
@@ -414,7 +446,19 @@ export function TrackerPage() {
         ) : null}
 
         {!loading && applications.length > 0 ? (
-          <div className="mt-6 overflow-x-auto">
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
+              {filtered.length} {filtered.length === 1 ? 'postulación' : 'postulaciones'} en la
+              lista
+            </span>
+            <span className="rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-800">
+              {sentCount} CVs enviados
+            </span>
+          </div>
+        ) : null}
+
+        {!loading && applications.length > 0 ? (
+          <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[760px] border-collapse text-left text-sm">
               <thead>
                 {table.getHeaderGroups().map((headerGroup) => (
