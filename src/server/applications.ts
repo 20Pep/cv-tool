@@ -240,6 +240,23 @@ export function updateApplication(
   return getApplication(db, id);
 }
 
+/**
+ * Borra la postulación y su historial. Los archivos PDF los elimina la ruta
+ * (conoce `outputsDir`); acá solo toca la base.
+ */
+export function deleteApplication(db: AppDatabase, id: number): StoredApplication | null {
+  const existing = getApplication(db, id);
+
+  if (existing === null) {
+    return null;
+  }
+
+  db.prepare('DELETE FROM status_history WHERE application_id = ?').run(id);
+  db.prepare('DELETE FROM applications WHERE id = ?').run(id);
+
+  return existing;
+}
+
 interface RawApplicationRow {
   id: number;
   company: string;

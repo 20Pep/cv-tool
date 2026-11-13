@@ -81,11 +81,11 @@ cambiar.
 
 **Mediciones del prototipo** (3 generaciones por corrida, secuenciales):
 
-| Corrida | CV | Carta | Inyección |
-|---|---:|---:|---:|
-| Español (1.ª) | 30,3 s | 17,6 s | 95,6 s |
-| Inglés | 115,5 s | 16,7 s | 69,9 s |
-| Español (2.ª) | 85,8 s | 47,2 s | — |
+| Corrida       |      CV |  Carta | Inyección |
+| ------------- | ------: | -----: | --------: |
+| Español (1.ª) |  30,3 s | 17,6 s |    95,6 s |
+| Inglés        | 115,5 s | 16,7 s |    69,9 s |
+| Español (2.ª) |  85,8 s | 47,2 s |         — |
 
 La latencia es muy variable (15–116 s), incluso con el mismo modelo y variante.
 No se puede prometer una vista previa de pocos segundos. La vista previa
@@ -660,6 +660,29 @@ contra el perfil) y `matchKeywords` (keywords de la oferta contra el texto del
 CV). Así, una oferta que pide GitHub se considera cubierta si el perfil
 declara Git, y la IA puede listar GitHub sin que el guardado lo rechace.
 
+### D-037 — Descargas sin guardar, portapapeles y eliminar en tracker
+
+A pedido de la persona:
+
+- **Descargar sin guardar:** nuevo endpoint `POST /api/applications/render`
+  (`kind: 'cv' | 'letter'`). Genera el PDF al momento con la misma validación
+  y las mismas reglas de nombre de archivo que el guardado, pero no crea la
+  postulación ni escribe en el tracker. El cliente lo descarga con
+  `apiDownload` (fetch → blob → click en anchor) porque el POST no puede ser
+  un link directo.
+- **Copiar al portapapeles:** `exportCvText` (en `src/shared/cvText.ts`)
+  produce el CV en texto plano con las mismas secciones del PDF. Las etiquetas
+  van en español o inglés según `detectLanguage` del resumen, que se movió a
+  `src/shared/language.ts` porque ahora también la usa el cliente.
+  Los datos de descarga y copiado siempre son `preview.tailoredCv` /
+  `preview.coverLetter` (la versión validada), nunca el JSON sin validar del
+  editor.
+- **Eliminar en tracker:** `DELETE /api/applications/:id` con confirmación de
+  dos pasos en la UI (Eliminar → Confirmar/Cancelar). `deleteApplication`
+  borra fila + historial de estados; la ruta borra los PDFs de `outputs/`
+  (conoce `outputsDir`, el servicio no). Borrar es irreversible y no pide
+  confirmación extra más allá de los dos pasos.
+
 ### D-036 — Publicación en GitHub
 
 - Repositorio público: https://github.com/20Pep/cv-tool (rama `main`).
@@ -717,20 +740,20 @@ previa y explotaba al guardar con un mensaje genérico sin campo ni detalle.
 
 ## [VERIFICAR] de PROJECT.md §10.2
 
-| Punto | Resultado |
-|---|---|
-| Agente sin herramientas | Resuelto usando `generate/text`: no hay sesión, agente ni loop de tools. Si se usa sesión como fallback, hay que crear un agente con permisos deny-all y aislar la config. |
-| Salida estructurada | No disponible en `generate/text`. Se pide JSON, se extrae y se valida con Zod. |
-| Elegir proveedor y modelo | `model: { providerID, id, variant? }` funciona. |
-| Concurrencia | No medida. El prototipo es secuencial. Pendiente. |
-| Latencia | 15–116 s según tarea y carga. Ver D-004. |
-| `OPENCODE_SERVER_PASSWORD` en `serve` dedicado | No verificado todavía. |
-| Aislamiento de plugins/MCP/config global | No verificado. Si se lanza una instancia dedicada, usar config aislada. |
+| Punto                                          | Resultado                                                                                                                                                                  |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agente sin herramientas                        | Resuelto usando `generate/text`: no hay sesión, agente ni loop de tools. Si se usa sesión como fallback, hay que crear un agente con permisos deny-all y aislar la config. |
+| Salida estructurada                            | No disponible en `generate/text`. Se pide JSON, se extrae y se valida con Zod.                                                                                             |
+| Elegir proveedor y modelo                      | `model: { providerID, id, variant? }` funciona.                                                                                                                            |
+| Concurrencia                                   | No medida. El prototipo es secuencial. Pendiente.                                                                                                                          |
+| Latencia                                       | 15–116 s según tarea y carga. Ver D-004.                                                                                                                                   |
+| `OPENCODE_SERVER_PASSWORD` en `serve` dedicado | No verificado todavía.                                                                                                                                                     |
+| Aislamiento de plugins/MCP/config global       | No verificado. Si se lanza una instancia dedicada, usar config aislada.                                                                                                    |
 
 ## [VERIFICAR] de PROJECT.md §4
 
-| Punto | Estado |
-|---|---|
-| `better-sqlite3` con prebuilds en Node 24 | Verificado (2026-11-11): 13.x, SQLite 3.54.1, sin compilador manual. |
-| `@react-pdf/renderer` en Node 24/ESM | Verificado (2026-11-11): 4.9.0 con React 19.3.1 generó un PDF válido. |
-| `unpdf` con CVs reales variados | Verificado con PDF generado y con TXT/DOCX ficticios. Falta probar una variedad de CVs reales (tablas, columnas, escaneados). |
+| Punto                                     | Estado                                                                                                                        |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `better-sqlite3` con prebuilds en Node 24 | Verificado (2026-11-11): 13.x, SQLite 3.54.1, sin compilador manual.                                                          |
+| `@react-pdf/renderer` en Node 24/ESM      | Verificado (2026-11-11): 4.9.0 con React 19.3.1 generó un PDF válido.                                                         |
+| `unpdf` con CVs reales variados           | Verificado con PDF generado y con TXT/DOCX ficticios. Falta probar una variedad de CVs reales (tablas, columnas, escaneados). |

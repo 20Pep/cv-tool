@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { extractText, getDocumentProxy } from 'unpdf';
 import { describe, expect, it } from 'vitest';
-import { detectLanguage } from '../src/server/generate/language.js';
 import { renderCvPdf, renderLetterPdf } from '../src/server/render/pdf.js';
+import { detectLanguage } from '../src/shared/language.js';
 import { MasterProfile } from '../src/shared/schemas.js';
 
 const profile = MasterProfile.parse(

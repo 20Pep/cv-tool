@@ -55,6 +55,51 @@ export async function apiDelete<T>(path: string, schema: ZodType<T>): Promise<T>
   return parseResponse(response, schema);
 }
 
+/**
+ * POST que devuelve un archivo para descargar. Lo usamos cuando el PDF se
+ * genera al momento (sin guardar la postulación) y la descarga no puede ser
+ * un simple link.
+ */
+export async function apiDownload(
+  path: string,
+  body: unknown,
+  fallbackName: string,
+): Promise<string> {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/pdf',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (response.status === 401) {
+    throw new ApiError(
+      'No hay una sesión válida. Volvé a ejecutar cv-tool y usá la URL que abre automáticamente.',
+      401,
+    );
+  }
+
+  if (!response.ok) {
+    throw new ApiError(await readError(response), response.status);
+  }
+
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await response.blob());
+  const anchor = document.createElement('a');
+
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 5_000);
+
+  return filename;
+}
+
 async function parseResponse<T>(response: Response, schema: ZodType<T>): Promise<T> {
   if (response.status === 401) {
     throw new ApiError(

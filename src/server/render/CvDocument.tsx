@@ -1,6 +1,6 @@
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import type { Language } from '../../shared/language.js';
 import type { MasterProfile, TailoredCV } from '../../shared/schemas.js';
-import type { Language } from '../generate/language.js';
 
 export interface CvDocumentProps {
   profile: MasterProfile;

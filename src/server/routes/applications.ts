@@ -3,15 +3,18 @@ import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { extractKeywords, matchKeywords } from '../../shared/keywords.js';
+import { detectLanguage } from '../../shared/language.js';
 import {
   ApplicationStatus,
   CreateApplicationRequest,
   PreviewApplicationRequest,
+  RenderPdfRequest,
   UpdateApplicationRequest,
 } from '../../shared/schemas.js';
 import { validateCoverLetter, validateTailoredCV } from '../../shared/validate.js';
 import {
   createApplication,
+  deleteApplication,
   getApplication,
   getApplicationHistory,
   listApplications,
@@ -28,7 +31,8 @@ import {
 } from '../generate/tailor.js';
 import { getStoredProfile } from '../profile/repository.js';
 import { ProviderError } from '../providers/index.js';
-import { renderApplicationPdfs } from '../render/pdf.js';
+import { buildPdfFilename } from '../render/filename.js';
+import { renderApplicationPdfs, renderCvPdf, renderLetterPdf } from '../render/pdf.js';
 import { getLlmSettings } from '../settings.js';
 
 export function registerApplicationRoutes(
@@ -187,6 +191,72 @@ export function registerApplicationRoutes(
     }
   });
 
+  app.post('/api/applications/render', async (request, reply) => {
+    const parsed = RenderPdfRequest.safeParse(request.body);
+
+    if (!parsed.success) {
+      const firstIssue = parsed.error.issues[0];
+      const field = firstIssue?.path.join('.');
+
+      return reply.code(400).send({
+        error: `No pude generar el PDF${field ? ` en ${field}` : ''}: ${
+          firstIssue?.message ?? 'revisá el CV y la carta.'
+        }`,
+      });
+    }
+
+    const stored = getStoredProfile(db);
+
+    if (stored === null) {
+      return reply.code(400).send({
+        error: 'Completá y guardá tu perfil maestro antes de descargar el PDF.',
+      });
+    }
+
+    const cvIssues = validateTailoredCV(parsed.data.tailoredCv, stored.profile);
+    const letterIssues = validateCoverLetter(
+      parsed.data.coverLetter,
+      `${JSON.stringify(stored.profile)}\n${parsed.data.jobText}`,
+    );
+
+    if (cvIssues.length > 0 || letterIssues.length > 0) {
+      return reply.code(400).send({
+        error: [...cvIssues, ...letterIssues].map((issue) => issue.message).join(' '),
+      });
+    }
+
+    const language = detectLanguage(parsed.data.jobText);
+    const meta = detectOfferMeta(parsed.data.jobText);
+    const company = parsed.data.company?.trim() || meta.suggestedCompany || 'Empresa no indicada';
+    const position = parsed.data.position?.trim() || meta.suggestedPosition || 'Puesto no indicado';
+    const fullName = stored.profile.basics.fullName;
+
+    try {
+      const buffer =
+        parsed.data.kind === 'cv'
+          ? await renderCvPdf(stored.profile, parsed.data.tailoredCv, language)
+          : await renderLetterPdf(
+              stored.profile,
+              parsed.data.coverLetter,
+              language,
+              company,
+              position,
+            );
+
+      return reply
+        .type('application/pdf')
+        .header(
+          'Content-Disposition',
+          `attachment; filename="${buildPdfFilename({ fullName, position }, parsed.data.kind)}"`,
+        )
+        .send(buffer);
+    } catch {
+      return reply
+        .code(500)
+        .send({ error: 'No pude generar el PDF. Probá de nuevo en un momento.' });
+    }
+  });
+
   app.get('/api/export/xlsx', async (_request, reply) => {
     const buffer = await buildApplicationsWorkbook(listApplications(db));
 
@@ -239,6 +309,32 @@ export function registerApplicationRoutes(
     }
 
     return { application: updated };
+  });
+
+  app.delete('/api/applications/:id', async (request, reply) => {
+    const params = request.params as { id?: string };
+    const id = Number(params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return reply.code(400).send({ error: 'La postulación no es válida.' });
+    }
+
+    const deleted = deleteApplication(db, id);
+
+    if (deleted === null) {
+      return reply.code(404).send({ error: 'La postulación no existe.' });
+    }
+
+    await Promise.all([
+      deleted.cvPath === null
+        ? undefined
+        : rm(path.join(config.outputsDir, deleted.cvPath), { force: true }),
+      deleted.letterPath === null
+        ? undefined
+        : rm(path.join(config.outputsDir, deleted.letterPath), { force: true }),
+    ]);
+
+    return { ok: true };
   });
 
   app.get('/api/applications/:id/files/:kind', async (request, reply) => {

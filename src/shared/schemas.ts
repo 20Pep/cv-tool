@@ -315,6 +315,12 @@ export const CreateApplicationRequest = z
 
 export type CreateApplicationRequest = z.infer<typeof CreateApplicationRequest>;
 
+export const RenderPdfRequest = CreateApplicationRequest.extend({
+  kind: z.enum(['cv', 'letter']),
+});
+
+export type RenderPdfRequest = z.infer<typeof RenderPdfRequest>;
+
 export const ApplicationInfo = z.object({
   id: z.number().int().positive(),
   company: z.string(),

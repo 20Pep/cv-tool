@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-table';
 import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import { z } from 'zod';
 import { daysSince } from '../../shared/dates';
 import {
   type ApplicationDetailResponse,
@@ -16,7 +17,7 @@ import {
   type ApplicationStatus as ApplicationStatusType,
   ApplicationsResponse as ApplicationsResponseSchema,
 } from '../../shared/schemas';
-import { apiGet, apiSend } from '../lib/api';
+import { apiDelete, apiGet, apiSend } from '../lib/api';
 
 const STATUS_LABELS: Record<ApplicationStatusType, string> = {
   draft: 'Borrador',
@@ -52,6 +53,8 @@ export function TrackerPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [notesDraft, setNotesDraft] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -102,6 +105,24 @@ export function TrackerPage() {
     },
     [],
   );
+
+  const removeApplication = useCallback(async (application: ApplicationInfo) => {
+    setDeletingId(application.id);
+    setError(null);
+    setMessage(null);
+
+    try {
+      await apiDelete(`/api/applications/${application.id}`, z.object({ ok: z.boolean() }));
+      setApplications((current) => current.filter((item) => item.id !== application.id));
+      setDetail((current) => (current?.application.id === application.id ? null : current));
+      setConfirmingDeleteId(null);
+      setMessage(`Postulación de ${application.company} eliminada del tracker.`);
+    } catch (caught) {
+      setError(messageFor(caught));
+    } finally {
+      setDeletingId(null);
+    }
+  }, []);
 
   const openDetail = useCallback(async (id: number) => {
     setDetailLoading(true);
@@ -254,18 +275,60 @@ export function TrackerPage() {
       columnHelper.display({
         id: 'actions',
         header: '',
-        cell: (info) => (
-          <button
-            type="button"
-            onClick={() => void openDetail(info.row.original.id)}
-            className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            Detalle
-          </button>
-        ),
+        cell: (info) => {
+          const application = info.row.original;
+          const confirming = confirmingDeleteId === application.id;
+
+          return (
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => void openDetail(application.id)}
+                className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                Detalle
+              </button>
+              {confirming ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void removeApplication(application)}
+                    disabled={deletingId === application.id}
+                    className="rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300"
+                  >
+                    {deletingId === application.id ? 'Eliminando…' : 'Confirmar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDeleteId(null)}
+                    className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDeleteId(application.id)}
+                  className="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
+                >
+                  Eliminar
+                </button>
+              )}
+            </div>
+          );
+        },
       }),
     ],
-    [columnHelper, openDetail, savingId, updateStatus],
+    [
+      columnHelper,
+      confirmingDeleteId,
+      deletingId,
+      openDetail,
+      removeApplication,
+      savingId,
+      updateStatus,
+    ],
   );
 
   const table = useReactTable({

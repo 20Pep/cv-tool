@@ -57,6 +57,12 @@ test('flujo de postulación: previsualizar, editar, validar y descargar', async 
   await page.getByRole('button', { name: 'Validar edición' }).click();
   await expect(page.getByText(/Edición validada\. Match recalculado: \d+%/)).toBeVisible();
 
+  // Descarga el CV ANTES de guardar: se genera al momento y no debe quedar
+  // ninguna postulación en el tracker por esta acción.
+  const earlyDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Descargar CV', exact: true }).click();
+  expect((await earlyDownload).suggestedFilename()).toMatch(/^Ana_Perez_.*\.pdf$/);
+
   await page.getByRole('button', { name: 'Guardar en el tracker' }).click();
   await expect(page.getByText(/Postulación #\d+ guardada como borrador\./)).toBeVisible();
 
@@ -67,6 +73,34 @@ test('flujo de postulación: previsualizar, editar, validar y descargar', async 
   const letterDownload = page.waitForEvent('download');
   await page.getByRole('link', { name: 'Descargar carta' }).click();
   expect((await letterDownload).suggestedFilename()).toMatch(/\.pdf$/);
+});
+
+test('tracker: elimina una postulación con confirmación', async ({ page }) => {
+  await page.context().addCookies([
+    {
+      name: 'cvtool_session',
+      value: 'e2e-session',
+      domain: '127.0.0.1',
+      path: '/',
+    },
+  ]);
+
+  await page.goto('/tracker');
+  await page.getByRole('heading', { name: 'Tracker', level: 1 }).waitFor();
+
+  const rows = page.locator('tbody tr');
+  const initialCount = await rows.count();
+
+  if (initialCount === 0) {
+    test.skip(true, 'No hay postulaciones para eliminar en esta corrida.');
+    return;
+  }
+
+  await rows.first().getByRole('button', { name: 'Eliminar' }).click();
+  await rows.first().getByRole('button', { name: 'Confirmar' }).click();
+
+  await expect(page.getByText(/eliminada del tracker\./)).toBeVisible();
+  await expect(rows).toHaveCount(initialCount - 1);
 });
 
 function buildMockPreview(): PreviewApplicationResponse {

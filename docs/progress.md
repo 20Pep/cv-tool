@@ -1,61 +1,76 @@
 # Progreso
 
+## Descargas sin guardar y eliminar en tracker (2026-11-12, noche)
+
+- [x] Cuatro acciones apenas se genera el CV: **Descargar CV**, **Copiar al
+  portapapeles**, **Descargar la carta** y **Guardar en el tracker**. Las
+      descargas usan el nuevo endpoint `POST /api/applications/render` que genera
+      el PDF al momento sin guardar nada; el copiado usa texto plano del CV
+      (`exportCvText` en `src/shared/cvText.ts`).
+- [x] **Eliminar** por fila en el tracker, con confirmación en dos pasos:
+      borra la fila, el historial de estados y los PDFs del disco.
+- [x] `language.ts` movido a `src/shared/` (lo usa el cliente para el texto
+      del portapapeles).
+- [x] Tests: 7 nuevos de Vitest (render cv/carta/errores, delete fila +
+      historial + archivos/404/id inválido) y 2 escenarios E2E nuevos (descarga
+      antes de guardar; eliminar en tracker). 135 tests + 3 E2E pasan.
+
 ## Publicación y UX final (2026-11-12, tarde)
 
 - [x] Botón **Guardar en el tracker** visible apenas se genera el CV (con
-  descargas de PDFs y "Ir al tracker" después de guardar); se quitó la
-  sección de guardado duplicada del final.
+      descargas de PDFs y "Ir al tracker" después de guardar); se quitó la
+      sección de guardado duplicada del final.
 - [x] Nombres de archivo más limpios: "Desarrollador/a" → "Desarrollador"
-  (los marcadores de género con barra no se convierten en guiones bajos),
-  "CI/CD" se mantiene, y los cortes por largo respetan palabras completas.
+      (los marcadores de género con barra no se convierten en guiones bajos),
+      "CI/CD" se mantiene, y los cortes por largo respetan palabras completas.
 - [x] Repositorio publicado: https://github.com/20Pep/cv-tool (rama `main`).
 - [x] Revisión de seguridad del árbol y del historial completo: sin secretos,
-  emails ni datos personales; `.gitignore` verificado sobre lo publicado.
+      emails ni datos personales; `.gitignore` verificado sobre lo publicado.
 - [x] 128 tests de Vitest + 2 E2E pasan.
 
 ## Mejoras de adaptación (2026-11-12, tarde)
 
 - [x] **Nombre del PDF con el nombre completo**: antes tomaba solo primer
-  nombre + primer apellido (`Pedro_Pariani`); ahora usa todas las partes
-  (`Pedro_Espejo_Pariani_Puesto_Empresa.pdf`).
+      nombre + primer apellido (`Pedro_Pariani`); ahora usa todas las partes
+      (`Pedro_Espejo_Pariani_Puesto_Empresa.pdf`).
 - [x] **Formato del archivo `Nombre_Rol_CV.pdf`**: sin nombre de empresa.
-  La carta es `Nombre_Rol_Carta.pdf`. La empresa sigue en el tracker y en el
-  PDF de la carta, solo sale del nombre de archivo.
+      La carta es `Nombre_Rol_Carta.pdf`. La empresa sigue en el tracker y en el
+      PDF de la carta, solo sale del nombre de archivo.
 - [x] **El puesto detectado se usa en el CV**: `detectOfferMeta` corre antes de
-  generar y el puesto objetivo viaja al prompt como `headline` obligatorio.
+      generar y el puesto objetivo viaja al prompt como `headline` obligatorio.
 - [x] **El CV fuente es guía, no lista cerrada** (prompt `cv.system.md`): se
-  pide adaptar lo más pegado posible a la oferta sin inventar nada.
+      pide adaptar lo más pegado posible a la oferta sin inventar nada.
 - [x] **Equivalencias de nombre entre skills** (`src/shared/skills.ts`): saber
-  Git valida/nombra GitHub (y viceversa), K8s ↔ Kubernetes, Node ↔ Node.js,
-  etc. Dos variantes de la misma base NO son equivalentes (GitLab ≠ GitHub) y
-  productos distintos no se igualan (PostgreSQL ≠ MySQL). Vale tanto para la
-  validación del CV contra el perfil como para el match de keywords de la
-  oferta.
+      Git valida/nombra GitHub (y viceversa), K8s ↔ Kubernetes, Node ↔ Node.js,
+      etc. Dos variantes de la misma base NO son equivalentes (GitLab ≠ GitHub) y
+      productos distintos no se igualan (PostgreSQL ≠ MySQL). Vale tanto para la
+      validación del CV contra el perfil como para el match de keywords de la
+      oferta.
 - [x] 125 tests de Vitest + 2 E2E pasan.
 
 ## Corrección del error de guardado (2026-11-12)
 
 - [x] El error "La postulación no es válida…" ahora muestra el campo exacto que
-  falla (`en tailoredCv.skills.3: …`).
+      falla (`en tailoredCv.skills.3: …`).
 - [x] `validate.ts` y `keywords.ts` se movieron a `src/shared/`: la UI valida con
-  el mismo código que el servidor al hacer "Validar edición" (skills del perfil,
-  `sourceBulletId`, cifras nuevas).
+      el mismo código que el servidor al hacer "Validar edición" (skills del perfil,
+      `sourceBulletId`, cifras nuevas).
 - [x] "Validar edición" recalcula keywords y match % en vivo con el mismo código
-  del servidor; el badge de match se actualiza antes de guardar.
+      del servidor; el badge de match se actualiza antes de guardar.
 - [x] Detección de empresa y puesto mejorada para ofertas sin encabezados ni
-  campos `**empresa:**`: extrae el puesto de frases como "en la búsqueda de
-  un/a X…" y la empresa de "Desde X nos encontramos…", tolera saltos de línea
-  dentro de la frase y limita el resultado a 60 caracteres.
+      campos `**empresa:**`: extrae el puesto de frases como "en la búsqueda de
+      un/a X…" y la empresa de "Desde X nos encontramos…", tolera saltos de línea
+      dentro de la frase y limita el resultado a 60 caracteres.
 - [x] Nuevo E2E (`tests/e2e/zz-application-flow.spec.ts`): reproduce el flujo
-  completo (oferta pegada → vista previa con IA simulada → edición inválida
-  rechazada en la UI con detalle → edición válida con match recalculado →
-  guardado real → descarga de CV y carta en PDF). El resto del flujo corre de
-  verdad contra el servidor.
+      completo (oferta pegada → vista previa con IA simulada → edición inválida
+      rechazada en la UI con detalle → edición válida con match recalculado →
+      guardado real → descarga de CV y carta en PDF). El resto del flujo corre de
+      verdad contra el servidor.
 - [x] `playwright.config.ts` con `workers: 1` para que el orden de los specs sea
-  determinista.
+      determinista.
 - [x] 115 tests de Vitest + 2 E2E pasan.
 - [x] Oferta ficticia nueva `fixtures/offers/analista-ia-es.md` con el mismo
-  estilo (introducción larga, sin campos explícitos).
+      estilo (introducción larga, sin campos explícitos).
 
 ## Paso 0 — Prototipo de prompts y spike de OpenCode
 
@@ -392,14 +407,14 @@ npm run dev
   - sin perfil → **Cargar mi perfil**;
   - con perfil → inicio directo en la caja **Adaptar para la oferta**, sin click extra.
 - [x] Nueva postulación con **una sola caja de texto** para oferta y contexto.
-  Empresa y puesto se detectan del texto; no se exigen campos aparte.
+      Empresa y puesto se detectan del texto; no se exigen campos aparte.
 - [x] Se quitó el borrador de carta de la pantalla de nueva postulación.
 - [x] El perfil acepta un **esquema de carta** opcional que se usa como guía de
-  estructura y tono.
+      estructura y tono.
 - [x] Ícono de **modo oscuro/claro** en el extremo del encabezado, con
-  preferencia persistida.
+      preferencia persistida.
 - [x] Tests: 111 unitarios/integración y E2E actualizado con el flujo de inicio
-  y el cambio de tema.
+      y el cambio de tema.
 
 ## Estado del MVP
 
@@ -421,4 +436,3 @@ Pendiente antes de un lanzamiento público:
 - Definir política para afirmaciones sin cifras en resumen/carta.
 - Mejorar el editor JSON a formulario y traducir skills en ofertas en inglés.
 - Verificar concurrencia y una instancia dedicada de OpenCode.
-

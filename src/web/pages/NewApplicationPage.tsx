@@ -1,7 +1,7 @@
 import { type ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import type { z } from 'zod';
-import { buildCvTextForMatch } from '../../shared/cvText';
+import { buildCvTextForMatch, exportCvText } from '../../shared/cvText';
 import { extractKeywords, matchKeywords } from '../../shared/keywords';
 import {
   type ApplicationInfo,
@@ -14,7 +14,7 @@ import {
   TailoredCV as TailoredCVSchema,
 } from '../../shared/schemas';
 import { validateCoverLetter, validateTailoredCV } from '../../shared/validate';
-import { apiGet, apiSend } from '../lib/api';
+import { apiDownload, apiGet, apiSend } from '../lib/api';
 
 export function NewApplicationPage({ initialProfile }: { initialProfile?: MasterProfile } = {}) {
   const [profile, setProfile] = useState<MasterProfile | null>(initialProfile ?? null);
@@ -26,6 +26,8 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<ApplicationInfo | null>(null);
+  const [downloading, setDownloading] = useState<'cv' | 'letter' | null>(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -135,6 +137,52 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
     setMessage(
       `Edición validada. Match recalculado: ${match.matchPct}% (${match.missing.length} keywords faltantes).`,
     );
+  };
+
+  /** PDF generado al momento, sin guardar la postulación en el tracker. */
+  const downloadPdf = async (kind: 'cv' | 'letter') => {
+    if (preview === null) {
+      return;
+    }
+
+    setDownloading(kind);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const filename = await apiDownload(
+        '/api/applications/render',
+        {
+          jobText: offerText,
+          tailoredCv: preview.tailoredCv,
+          coverLetter: preview.coverLetter,
+          kind,
+        },
+        kind === 'cv' ? 'CV.pdf' : 'Carta.pdf',
+      );
+      setMessage(`PDF descargado: ${filename}`);
+    } catch (caught) {
+      setError(messageFor(caught));
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const copyCvToClipboard = async () => {
+    if (preview === null || profile === null) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(exportCvText(profile, preview.tailoredCv));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 3_000);
+      setMessage('CV copiado al portapapeles en texto plano.');
+    } catch {
+      setError(
+        'No pude copiar al portapapeles. Tu navegador lo puede bloquear: probá de nuevo o descargá el PDF.',
+      );
+    }
   };
 
   const saveApplication = async () => {
@@ -350,19 +398,41 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
               </section>
 
               <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-semibold">¿Te sirve este CV?</h2>
-                    <p className="mt-1 text-sm text-emerald-900">
-                      Guardalo en el tracker: queda como borrador, se generan los PDFs y podés
-                      seguir su estado.
-                    </p>
-                  </div>
+                <h2 className="text-lg font-semibold">¿Te sirve este CV?</h2>
+                <p className="mt-1 text-sm text-emerald-900">
+                  Descargalo, copialo o guardalo en el tracker. Los PDFs se generan al momento y
+                  descargás sin guardar nada.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void downloadPdf('cv')}
+                    disabled={downloading !== null}
+                    className="rounded-lg bg-emerald-800 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                  >
+                    {downloading === 'cv' ? 'Generando PDF…' : 'Descargar CV'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void copyCvToClipboard()}
+                    disabled={profile === null}
+                    className="rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  >
+                    {copied ? 'Copiado ✓' : 'Copiar al portapapeles'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void downloadPdf('letter')}
+                    disabled={downloading !== null}
+                    className="rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  >
+                    {downloading === 'letter' ? 'Generando PDF…' : 'Descargar la carta'}
+                  </button>
                   <button
                     type="button"
                     onClick={() => void saveApplication()}
                     disabled={saving || saved !== null}
-                    className="rounded-lg bg-emerald-800 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                    className="rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                   >
                     {saving
                       ? 'Guardando…'
