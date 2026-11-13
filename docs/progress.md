@@ -1,5 +1,15 @@
 # Progreso
 
+## Ajuste tras usar la app (2026-11-13)
+
+- [x] Al guardar en el tracker ya no se repiten las opciones de descarga:
+      el box de confirmación quedó solo con el número de postulación y
+      "Ir al tracker". Las descargas están una sola vez, en la barra de acciones
+      (y también en la fila del tracker).
+- [x] E2E actualizado: descarga CV y carta **antes** de guardar y verifica
+      que después de guardar no queden links de descarga duplicados.
+- [x] 135 tests + 3 E2E pasan.
+
 ## Feedback visual al generar (2026-11-12, noche)
 
 - [x] Mientras se genera el CV y la carta: spinner en el botón, barra de

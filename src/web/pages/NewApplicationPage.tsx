@@ -507,30 +507,14 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
                 </div>
 
                 {saved === null ? null : (
-                  <div className="mt-5 rounded-xl border border-emerald-200 bg-white p-4 text-sm text-emerald-900">
+                  <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-white p-4 text-sm text-emerald-900">
                     <p className="font-medium">Postulación #{saved.id} guardada como borrador.</p>
-                    <div className="mt-3 flex flex-wrap gap-3">
-                      <a
-                        href={`/api/applications/${saved.id}/files/cv`}
-                        download
-                        className="rounded-lg bg-emerald-800 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-900"
-                      >
-                        Descargar CV
-                      </a>
-                      <a
-                        href={`/api/applications/${saved.id}/files/letter`}
-                        download
-                        className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100"
-                      >
-                        Descargar carta
-                      </a>
-                      <Link
-                        to="/tracker"
-                        className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100"
-                      >
-                        Ir al tracker
-                      </Link>
-                    </div>
+                    <Link
+                      to="/tracker"
+                      className="ml-auto rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100"
+                    >
+                      Ir al tracker
+                    </Link>
                   </div>
                 )}
               </section>

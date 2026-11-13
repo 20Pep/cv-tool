@@ -63,16 +63,16 @@ test('flujo de postulación: previsualizar, editar, validar y descargar', async 
   await page.getByRole('button', { name: 'Descargar CV', exact: true }).click();
   expect((await earlyDownload).suggestedFilename()).toMatch(/^Ana_Perez_.*\.pdf$/);
 
+  const earlyLetterDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Descargar la carta', exact: true }).click();
+  expect((await earlyLetterDownload).suggestedFilename()).toMatch(/^Ana_Perez_.*_Carta\.pdf$/);
+
   await page.getByRole('button', { name: 'Guardar en el tracker' }).click();
   await expect(page.getByText(/Postulación #\d+ guardada como borrador\./)).toBeVisible();
 
-  const cvDownload = page.waitForEvent('download');
-  await page.getByRole('link', { name: 'Descargar CV' }).click();
-  expect((await cvDownload).suggestedFilename()).toMatch(/\.pdf$/);
-
-  const letterDownload = page.waitForEvent('download');
-  await page.getByRole('link', { name: 'Descargar carta' }).click();
-  expect((await letterDownload).suggestedFilename()).toMatch(/\.pdf$/);
+  // Después de guardar no se repiten las descargas: solo el acceso al tracker.
+  await expect(page.getByRole('link', { name: 'Ir al tracker' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Descargar/ })).toHaveCount(0);
 });
 
 test('tracker: elimina una postulación con confirmación', async ({ page }) => {
