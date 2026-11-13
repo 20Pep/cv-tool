@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* Barra de progreso indeterminada mientras se genera el CV y la carta. */
+@keyframes cv-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.cv-progress-bar {
+  animation: cv-progress 1.6s ease-in-out infinite;
+}
+
 :root {
   color-scheme: light;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

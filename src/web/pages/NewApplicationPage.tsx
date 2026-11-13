@@ -28,6 +28,7 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
   const [saved, setSaved] = useState<ApplicationInfo | null>(null);
   const [downloading, setDownloading] = useState<'cv' | 'letter' | null>(null);
   const [copied, setCopied] = useState(false);
+  const [generatingSeconds, setGeneratingSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -50,6 +51,20 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
       void loadProfile();
     }
   }, [initialProfile, loadProfile]);
+
+  // Segundos transcurridos mientras se genera, para el indicador de progreso.
+  useEffect(() => {
+    if (!generating) {
+      setGeneratingSeconds(0);
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setGeneratingSeconds((current) => current + 1);
+    }, 1_000);
+
+    return () => window.clearInterval(timer);
+  }, [generating]);
 
   const generate = async () => {
     setGenerating(true);
@@ -280,14 +295,43 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
                 type="button"
                 onClick={() => void generate()}
                 disabled={!canGenerate}
+                title="Genera el CV y la carta con IA a partir de la oferta pegada arriba."
                 className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                {generating ? 'Generando CV y carta…' : 'Generar vista previa'}
+                {generating ? (
+                  <span className="inline-flex items-center gap-2">
+                    <IconSpinner className="h-4 w-4" />
+                    Generando CV y carta…
+                  </span>
+                ) : (
+                  'Generar vista previa'
+                )}
               </button>
               <span className="text-xs text-slate-500">
                 Usa el modelo elegido en Ajustes. Puede tardar uno o dos minutos.
               </span>
             </div>
+
+            {generating ? (
+              <div className="mt-4">
+                <div className="h-1 w-full overflow-hidden rounded-full bg-slate-200">
+                  <div className="cv-progress-bar h-full w-1/3 rounded-full bg-emerald-600" />
+                </div>
+                <p
+                  aria-live="polite"
+                  className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600"
+                >
+                  <span className="relative inline-flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600" />
+                  </span>
+                  {generatingPhase(generatingSeconds)}
+                  <span className="text-xs text-slate-400">
+                    ({generatingSeconds} {generatingSeconds === 1 ? 'segundo' : 'segundos'})
+                  </span>
+                </p>
+              </div>
+            ) : null}
           </section>
 
           {preview !== null ? (
@@ -408,32 +452,52 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
                     type="button"
                     onClick={() => void downloadPdf('cv')}
                     disabled={downloading !== null}
-                    className="rounded-lg bg-emerald-800 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                    title="Descarga el PDF del CV ahora mismo, sin guardar la postulación en el tracker."
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-800 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:bg-emerald-300"
                   >
+                    {downloading === 'cv' ? (
+                      <IconSpinner className="h-4 w-4" />
+                    ) : (
+                      <IconDownload className="h-4 w-4" />
+                    )}
                     {downloading === 'cv' ? 'Generando PDF…' : 'Descargar CV'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void copyCvToClipboard()}
-                    disabled={profile === null}
-                    className="rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                  >
-                    {copied ? 'Copiado ✓' : 'Copiar al portapapeles'}
                   </button>
                   <button
                     type="button"
                     onClick={() => void downloadPdf('letter')}
                     disabled={downloading !== null}
-                    className="rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                    title="Descarga el PDF de la carta de presentación, sin guardar la postulación."
+                    className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                   >
+                    {downloading === 'letter' ? (
+                      <IconSpinner className="h-4 w-4" />
+                    ) : (
+                      <IconLetter className="h-4 w-4" />
+                    )}
                     {downloading === 'letter' ? 'Generando PDF…' : 'Descargar la carta'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void copyCvToClipboard()}
+                    disabled={profile === null}
+                    title="Copia el CV en texto plano para pegarlo en portales o formularios."
+                    className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  >
+                    <IconClipboard className="h-4 w-4" />
+                    {copied ? 'Copiado ✓' : 'Copiar al portapapeles'}
                   </button>
                   <button
                     type="button"
                     onClick={() => void saveApplication()}
                     disabled={saving || saved !== null}
-                    className="rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                    title="Guarda la postulación como borrador, genera los PDFs y la agrega al tracker."
+                    className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                   >
+                    {saving ? (
+                      <IconSpinner className="h-4 w-4" />
+                    ) : (
+                      <IconSave className="h-4 w-4" />
+                    )}
                     {saving
                       ? 'Guardando…'
                       : saved !== null
@@ -554,4 +618,112 @@ function parseIssueMessage(prefix: string, error: z.ZodError): string {
   const field = issue?.path.join('.');
 
   return `${prefix}${field ? ` en ${field}` : ''}: ${issue?.message ?? 'formato inesperado.'}`;
+}
+
+/**
+ * Mensaje de fase mientras se genera. Es orientativo: le da a la persona una
+ * idea de dónde está el proceso en generaciones que tardan más de un minuto.
+ */
+function generatingPhase(seconds: number): string {
+  if (seconds < 15) {
+    return 'Leyendo la oferta y tu perfil…';
+  }
+  if (seconds < 45) {
+    return 'Adaptando el CV a la oferta…';
+  }
+  if (seconds < 90) {
+    return 'Redactando la carta de presentación…';
+  }
+
+  return 'Afinando los últimos detalles…';
+}
+
+function IconSpinner({ className = '' }: { className?: string }) {
+  return (
+    <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+      <path
+        d="M22 12a10 10 0 0 0-10-10"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconDownload({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
+function IconLetter({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="8" y1="13" x2="16" y2="13" />
+      <line x1="8" y1="17" x2="13" y2="17" />
+    </svg>
+  );
+}
+
+function IconClipboard({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+function IconSave({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+      <polyline points="17 21 17 13 7 13 7 21" />
+      <polyline points="7 3 7 8 15 8" />
+    </svg>
+  );
 }

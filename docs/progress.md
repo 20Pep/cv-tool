@@ -1,5 +1,18 @@
 # Progreso
 
+## Feedback visual al generar (2026-11-12, noche)
+
+- [x] Mientras se genera el CV y la carta: spinner en el botón, barra de
+      progreso indeterminada y texto de fase con segundos transcurridos ("Leyendo
+      la oferta… → Adaptando el CV… → Redactando la carta… → Afinando los
+      últimos detalles…"). Animación `cv-progress` en `src/web/styles.css`.
+- [x] Botones de acción con íconos SVG inline (descarga, carta, portapapeles,
+      guardar) y tooltip nativo (`title`) explicando qué hace cada uno.
+- [x] Orden nuevo: Descargar CV · Descargar la carta · Copiar al portapapeles
+      · Guardar en el tracker. Spinner también en las descargas de PDF y al
+      guardar.
+- [x] 135 tests + 3 E2E pasan.
+
 ## Descargas sin guardar y eliminar en tracker (2026-11-12, noche)
 
 - [x] Cuatro acciones apenas se genera el CV: **Descargar CV**, **Copiar al
