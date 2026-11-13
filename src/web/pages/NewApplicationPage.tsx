@@ -1,7 +1,7 @@
 import { type ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import type { z } from 'zod';
-import { buildCvTextForMatch, exportCvText } from '../../shared/cvText';
+import { buildCvTextForMatch, exportLetterText } from '../../shared/cvText';
 import { extractKeywords, matchKeywords } from '../../shared/keywords';
 import {
   type ApplicationInfo,
@@ -183,16 +183,16 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
     }
   };
 
-  const copyCvToClipboard = async () => {
-    if (preview === null || profile === null) {
+  const copyLetterToClipboard = async () => {
+    if (preview === null) {
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(exportCvText(profile, preview.tailoredCv));
+      await navigator.clipboard.writeText(exportLetterText(preview.coverLetter));
       setCopied(true);
       window.setTimeout(() => setCopied(false), 3_000);
-      setMessage('CV copiado al portapapeles en texto plano.');
+      setMessage('Carta copiada al portapapeles en texto plano.');
     } catch {
       setError(
         'No pude copiar al portapapeles. Tu navegador lo puede bloquear: probá de nuevo o descargá el PDF.',
@@ -472,19 +472,18 @@ export function NewApplicationPage({ initialProfile }: { initialProfile?: Master
                     {downloading === 'letter' ? (
                       <IconSpinner className="h-4 w-4" />
                     ) : (
-                      <IconLetter className="h-4 w-4" />
+                      <IconDownload className="h-4 w-4" />
                     )}
                     {downloading === 'letter' ? 'Generando PDF…' : 'Descargar la carta'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => void copyCvToClipboard()}
-                    disabled={profile === null}
-                    title="Copia el CV en texto plano para pegarlo en portales o formularios."
-                    className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                    onClick={() => void copyLetterToClipboard()}
+                    title="Copia la carta en texto plano para pegarla en portales o formularios."
+                    className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100"
                   >
                     <IconClipboard className="h-4 w-4" />
-                    {copied ? 'Copiado ✓' : 'Copiar al portapapeles'}
+                    {copied ? 'Copiado ✓' : 'Copiar la carta'}
                   </button>
                   <button
                     type="button"
@@ -651,26 +650,6 @@ function IconDownload({ className = '' }: { className?: string }) {
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="7 10 12 15 17 10" />
       <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
-}
-
-function IconLetter({ className = '' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="8" y1="13" x2="16" y2="13" />
-      <line x1="8" y1="17" x2="13" y2="17" />
     </svg>
   );
 }

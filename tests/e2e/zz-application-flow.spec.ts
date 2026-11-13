@@ -26,6 +26,10 @@ test('flujo de postulación: previsualizar, editar, validar y descargar', async 
 
   await page.goto('/');
 
+  // Permite leer el portapapeles para verificar el botón "Copiar la carta".
+  const origin = new URL(page.url()).origin;
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
+
   const savedProfile = await page.request.put('/api/profile', { data: { profile } });
   expect(savedProfile.ok()).toBe(true);
 
@@ -66,6 +70,13 @@ test('flujo de postulación: previsualizar, editar, validar y descargar', async 
   const earlyLetterDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Descargar la carta', exact: true }).click();
   expect((await earlyLetterDownload).suggestedFilename()).toMatch(/^Ana_Perez_.*_Carta\.pdf$/);
+
+  // Copia la carta al portapapeles y verifica el contenido.
+  await page.getByRole('button', { name: 'Copiar la carta' }).click();
+  await expect(page.getByText('Carta copiada al portapapeles en texto plano.')).toBeVisible();
+  const clipboard = await page.evaluate(() => navigator.clipboard.readText());
+  expect(clipboard).toContain('Les escribo porque la búsqueda de Analista de Datos');
+  expect(clipboard).toContain('Saludos, Ana Pérez');
 
   await page.getByRole('button', { name: 'Guardar en el tracker' }).click();
   await expect(page.getByText(/Postulación #\d+ guardada como borrador\./)).toBeVisible();

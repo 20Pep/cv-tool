@@ -1,5 +1,16 @@
 # Progreso
 
+## Portapapeles con la carta (2026-11-13)
+
+- [x] "Copiar al portapapeles" ahora copia **la carta** (no el CV): nuevo
+      `exportLetterText` en `src/shared/cvText.ts`; botón renombrado a "Copiar la
+      carta" con ícono de portapapeles. El CV queda solo con descarga PDF.
+- [x] Íconos: CV y carta con ícono de descarga; el ícono de documento de la
+      carta se eliminó (quedaba sin uso).
+- [x] E2E verifica el contenido real del portapapeles (permisos de Chromium);
+      2 tests unitarios nuevos de `exportLetterText` / `buildCvTextForMatch`.
+- [x] 137 tests + 3 E2E pasan.
+
 ## Ajuste tras usar la app (2026-11-13)
 
 - [x] Al guardar en el tracker ya no se repiten las opciones de descarga:
